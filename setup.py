@@ -1,13 +1,13 @@
 from setuptools import setup
 
 setup(
-    name = 'ptmon',
+    name = 'ptutils',
     version = '0.0.1',
     author = 'Rendaw',
     author_email = 'spoo@zarbosoft.com',
-    packages = ['ptmon', 'ptman'],
-    url = 'https://github.com/Rendaw/ptmon',
-    download_url = 'https://github.com/Rendaw/ptmon/tarball/v0.0.1',
+    packages = ['ptmonitor', 'ptq'],
+    url = 'https://github.com/Rendaw/ptutils',
+    download_url = 'https://github.com/Rendaw/ptutils/tarball/v0.0.1',
     license = 'BSD',
     description = 'Index files and browse polytaxis tags.',
     long_description = open('readme.md', 'r').read(),
@@ -19,10 +19,12 @@ setup(
         'PyQt5',
         'appdirs',
         'watchdog',
+        'polytaxis',
     ],
     entry_points = {
         'console_scripts': [
-            'ptmon = ptmon.ptmon:main',
+            'ptmonitor = ptmonitor.main:main',
+            'ptq = ptq.main:main',
         ],
     }
 )
