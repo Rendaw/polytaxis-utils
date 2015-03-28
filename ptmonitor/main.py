@@ -1,8 +1,7 @@
 import os
+import ntpath
 import argparse
 import signal
-import errno
-import sqlite3
 import time
 
 import watchdog
@@ -12,30 +11,39 @@ import appdirs
 import polytaxis
 
 
-def mkdir_p(path):
-    try:
-        os.makedirs(path)
-    except OSError as exc: # Python >2.5
-        if exc.errno == errno.EEXIST and os.path.isdir(path):
-            pass
-        else: raise
-
-
 die = False
 def signal_handler(signal, frame):
     global die
     die = True
 signal.signal(signal.SIGINT, signal_handler)
 
-def split_path(path):
-    out = []
-    head = path
+def os_path_split_asunder(path, windows):
+    # Thanks http://stackoverflow.com/questions/4579908/cross-platform-splitting-of-path-in-python/4580931#4580931
+    # Mod for windows paths on linux
+    parts = []
     while True:
-        head, tail = os.path.split(head)
-        if not tail:
+        newpath, tail = (ntpath.split if windows else os.path.split)(path)
+        if newpath == path:
+            assert not tail
+            if path: parts.append(path)
             break
-        out.append(tail)
-    return reversed(out)
+        parts.append(tail)
+        path = newpath
+    parts.reverse()
+    return parts
+
+def split_abs_path(path):
+    windows = False
+    out = []
+    if len(path) > 1 and path[1] == ':':
+        windows = True
+        drive, path = ntpath.splitdrive(path)
+        out.append(drive)
+    extend = os_path_split_asunder(path, windows)
+    if windows:
+        extend.pop(0)
+    out.extend(extend)
+    return out
 
 def get_fid(parent, segment):
     got = conn.execute(
@@ -49,16 +57,19 @@ def get_fid(parent, segment):
         return None
     return got[0]
 
-def create_file(filename):
+def create_file(filename, tags):
     fid = None
-    for split in split_path(filename):
+    splits = split_abs_path(filename)
+    last_index = len(splits) - 1
+    for index, split in enumerate(splits):
         next_fid = get_fid(fid, split)
         if next_fid is None:
             conn.execute(
-                'INSERT INTO files (id, parent, segment) VALUES (NULL, :parent, :segment)',
+                'INSERT INTO files (id, parent, segment, tags) VALUES (NULL, :parent, :segment, :tags)',
                 {
                     'parent': fid,
                     'segment': split,
+                    'tags': polytaxis.encode_tags(tags) if index == last_index else None,
                 },
             )
             next_fid = conn.lastrowid
@@ -66,16 +77,15 @@ def create_file(filename):
     return fid
 
 def delete_file(fid):
-    while True:
-        parent = conn.execute(
-            'SELECT parent FROM files WHERE id = :id',
+    parent = True
+    while fid is not None:
+        (parent,) = conn.execute(
+            'SELECT parent FROM files WHERE id is :id',
             {
                 'id': fid,
             }
-        ).fetchone()[0]
-        if parent is None:
-            break
-        conn.execute('DELETE FROM files WHERE id = :id', {'id': fid})
+        ).fetchone()
+        conn.execute('DELETE FROM files WHERE id is :id', {'id': fid})
         if conn.execute(
                 'SELECT count(1) FROM files WHERE parent is :id',
                 {
@@ -102,14 +112,14 @@ def process(filename):
     is_file = os.path.isfile(filename)
     tags = polytaxis.get_tags(filename) if is_file else None
     fid = None
-    for split in split_path(filename):
+    for split in split_abs_path(filename):
         fid = get_fid(fid, split)
         if fid is None:
             break
     if tags is None and fid is None:
         pass
     elif tags is not None and fid is None:
-        fid = create_file(filename)
+        fid = create_file(filename, tags)
         add_tags(fid, tags)
     elif tags is not None and fid is not None:
         remove_tags(fid)
@@ -121,14 +131,14 @@ def process(filename):
 def move_file(source, dest):
     sparent = None
     sfid = None
-    for split in split_path(source):
+    for split in split_abs_path(source):
         sparent = sfid
         sfid = get_fid(sparent, split)
         if sfid is None:
             return
     dparent = None
     dfid = None
-    dsplits = split_path(source)
+    dsplits = split_abs_path(source)
     new_name = dsplits[-1]
     dsplits = dsplits[:-1]
     for split in dsplits:
@@ -182,23 +192,11 @@ def main():
     )
     args = parser.parse_args()
     
-    root = appdirs.user_data_dir('polytaxis', 'zarbosoft')
-    mkdir_p(root)
-
-    db_path = os.path.join(root, 'db.sqlite3')
     global conn
-    init_db = False
-    if not os.path.exists(db_path):
-        print('Initializing db at [{}]'.format(db_path))
-        init_db = True
-    conn = sqlite3.connect(db_path, check_same_thread=False, isolation_level=None)
-    conn = conn.cursor()
-    if init_db:
-        conn.execute('CREATE TABLE files (id INTEGER PRIMARY KEY, parent INT, segment TEXT NOT NULL)')
-        conn.execute('CREATE TABLE tags (tag TEXT NOT NULL, file INT NOT NULL)')
+    conn = common.open_db()
 
     if args.check:
-        print('Checking...')
+        print(u'Checking...')
         stack = [(False, None, '')]
         parts = []
         last_parent = None
@@ -215,7 +213,7 @@ def main():
                     stack.append((False, next_id, next_segment))
             else:
                 joined = '/' + os.path.join(*parts)
-                print('Checking [{}]'.format(joined)) # DEBUG
+                print(u'Checking [{}]'.format(joined)) # DEBUG
                 if joined and not os.path.exists(joined):
                     print(u'[{}] no longer exists, removing'.format(joined))
                     remove_tags(fid)
@@ -224,7 +222,7 @@ def main():
 
     if args.scan:
         for path in args.directory:
-            print('Scanning [{}]...'.format(path))
+            print(u'Scanning [{}]...'.format(path))
             for base, dirnames, filenames in os.walk(path):
                 for filename in filenames:
                     process(os.path.join(base, filename))
@@ -232,7 +230,7 @@ def main():
     observer = watchdog.observers.Observer()
     handler = MonitorHandler()
     for path in args.directory:
-        print('Starting watch on [{}]'.format(path))
+        print(u'Starting watch on [{}]'.format(path))
         observer.schedule(handler, path, recursive=True)
     observer.start()
     try:
