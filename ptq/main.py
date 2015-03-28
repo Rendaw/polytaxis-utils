@@ -1,5 +1,8 @@
 import argparse
 import sys
+import os
+
+import appdirs
 
 import ptmonitor.common
 
@@ -18,7 +21,7 @@ def main():
     parser.add_argument(
         'args',
         help='Query argument(s).',
-        action='append',
+        nargs='*',
         default=[],
     )
     parser.add_argument(
@@ -26,7 +29,8 @@ def main():
         '--tags',
         help='Query tags rather than files.',
         choices=['prefix', 'anywhere'],
-        default='prefix',
+        nargs='?',
+        const='prefix',
     )
     parser.add_argument(
         '-n',
@@ -52,13 +56,16 @@ def main():
     db = ptmonitor.common.QueryDB()
 
     if args.tags:
-        if len(args.args) != 1:
+        if len(args.args) > 1:
             parser.error(
-                'When querying tags you may only specify one query argument.'
+                'When querying tags you may specify at most one query argument.'
             )
         rows = [
             row for row in limit(
-                args.limit, db.query_tags(args.tags, args.args[0])
+                args.limit, db.query_tags(
+                    args.tags, 
+                    args.args[0] if args.args else ''
+                )
             )
         ]
         for row in rows:
@@ -69,6 +76,9 @@ def main():
         ptmonitor.common.sort(sort, rows)
         for row in rows:
             path = db.query_path(row['fid'])
+            if len(path) >= 2 and path[1] == ':':
+                path = path[2:]
+            path = path[1:]
             if args.unwrap:
                 path = os.path.join(unwrap_root, path)
             print(path)

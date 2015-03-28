@@ -13,20 +13,24 @@ def mkdir_p(path):
             pass
         else: raise
 
+
+def init_db(conn):
+    conn.execute('CREATE TABLE files (id INTEGER PRIMARY KEY, parent INT, segment TEXT NOT NULL, tags TEXT)')
+    conn.execute('CREATE TABLE tags (tag TEXT NOT NULL, file INT NOT NULL)')
+
 def open_db():
     root = appdirs.user_data_dir('ptmonitor', 'zarbosoft')
     mkdir_p(root)
 
     db_path = os.path.join(root, 'db.sqlite3')
-    init_db = False
+    do_init_db = False
     if not os.path.exists(db_path):
         print(u'Initializing db at [{}]'.format(db_path))
-        init_db = True
+        do_init_db = True
     conn = sqlite3.connect(db_path, check_same_thread=False, isolation_level=None)
     conn = conn.cursor()
-    if init_db:
-        conn.execute('CREATE TABLE files (id INTEGER PRIMARY KEY, parent INT, segment TEXT NOT NULL, tags TEXT)')
-        conn.execute('CREATE TABLE tags (tag TEXT NOT NULL, file INT NOT NULL)')
+    if do_init_db:
+        init_db(conn)
     return conn
 
 def parse_query(args):
@@ -94,7 +98,7 @@ class QueryDB(object):
             if primary_index >= primary_limit:
                 break
         if primary_index == 0:
-            primary_select = 'SELECT file FROM files LIMIT :offset, :size'
+            primary_select = 'SELECT id FROM files WHERE tags is not NULL LIMIT :offset, :size'
         else:
             if primary_include:
                 primary_exclude.insert(0, ' INTERSECT '.join(primary_include))

@@ -16,7 +16,7 @@ setup(
         'License :: OSI Approved :: BSD License',
     ],
     install_requires = [
-        'PyQt5',
+        #'PyQt5',
         'appdirs',
         'watchdog',
         'polytaxis',

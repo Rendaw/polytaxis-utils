@@ -10,6 +10,8 @@ import watchdog.observers
 import appdirs
 import polytaxis
 
+import common
+
 
 die = False
 def signal_handler(signal, frame):
@@ -109,6 +111,7 @@ def remove_tags(fid):
     conn.execute('DELETE FROM tags WHERE file = :fid', {'fid': fid})
 
 def process(filename):
+    filename = os.path.abspath(filename)
     is_file = os.path.isfile(filename)
     tags = polytaxis.get_tags(filename) if is_file else None
     fid = None
