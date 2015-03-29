@@ -1,3 +1,9 @@
+# Installation
+
+Run `pip2 install git+https://github.com/Rendaw/ptutils`.
+
+# Utilities
+
 ## ptmonitor
 
 `ptmonitor` monitors directories for polytaxis file additions/modifications/deletions and indexes their tags.
