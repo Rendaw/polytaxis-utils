@@ -49,7 +49,7 @@ def main():
 
     if args.unwrap:
         unwrap_root = os.path.join(
-            appdirs.user_data_dir('ptwrapd', 'zarbosoft'),
+            appdirs.user_data_dir('ptunwrap', 'zarbosoft'),
             'mount',
         )
 
