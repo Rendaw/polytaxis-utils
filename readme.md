@@ -2,6 +2,8 @@
 
 `ptmonitor` monitors directories for polytaxis file additions/modifications/deletions and indexes their tags.
 
+Files with no tags will be categorized with the tag 'untagged'.
+
 For usage, run `ptmonitor -h`.
 
 ## ptq
@@ -10,7 +12,7 @@ For usage, run `ptmonitor -h`.
 
 For information on flags and other arguments, run `ptq -h`.
 
-### File Queries
+#### File Queries
 File queries are written as a list of terms. A term can be a tag ('tag' or 
 'tag=value', matched in full), an exclusion ('-tag' or '-tag=value'), or a 
 special term. Terms should be escaped if there are non-syntax special 
@@ -28,7 +30,7 @@ Currently, columns cannot be selected (only the filename is displayed).
 Example:
 ptq 'album=polytaxis official soundtrack' sort+:discnumber sort+:tracknumber
 
-### Tag Queries
+#### Tag Queries
 Tag queries take a single string. The string is used as a query parameter
 based on the query modifier ('prefix' or 'anywhere').
 

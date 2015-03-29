@@ -98,6 +98,15 @@ def delete_file(fid):
         fid = parent
 
 def add_tags(fid, tags):
+    if not tags:
+        conn.execute('INSERT INTO tags (tag, file) VALUES (:tag, :fid)',
+            {
+                'tag': 'untagged',
+                'fid': fid,
+            }
+        )
+        return
+
     for key, values in tags.items():
         for value in values:
             conn.execute('INSERT INTO tags (tag, file) VALUES (:tag, :fid)',
