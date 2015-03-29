@@ -69,15 +69,18 @@ class TestQueryDB(unittest.TestCase):
         db.execute('DELETE FROM files')
         self.tag_sets = [
             {
+                'seven': set([None]),
                 'red': set([None]),
                 'juicy': set([None]),
                 'date': set(['99']),
             },
             {
+                'seven': set([None]),
                 'red': set([None]),
                 'date': set(['98']),
             },
             {
+                'seven': set([None]),
                 'under': set([None]),
                 'length': set(['7']),
                 'date': set(['103']),
@@ -121,6 +124,14 @@ class TestQueryDB(unittest.TestCase):
             [
                 {'fid': self.fids[1], 'segment': u'loog.txt', 'tags': self.tag_sets[1]},
                 {'fid': self.fids[2], 'segment': u'noxx', 'tags': self.tag_sets[2]},
+            ],
+        )
+    
+    def test_query_include_exclude(self):
+        self.assertItemsEqual(
+            list(self.query.query([('seven', None), ('red', None)], [('date', '99')])),
+            [
+                {'fid': self.fids[1], 'segment': u'loog.txt', 'tags': self.tag_sets[1]},
             ],
         )
 

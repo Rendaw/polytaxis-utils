@@ -67,38 +67,37 @@ class QueryDB(object):
         self.conn = open_db()
 
     def query(self, include, exclude):
+        # Assemble first several includes/excludes into a sql query
         primary_tags = []
         primary_include = []
         primary_exclude = []
         primary_args = {
         }
         primary_limit = 3
-        primary_index = 0
-        for key, value in include:
-            primary_include.append(
+        primary_index = [0]
+
+        def build_select(dest):
+            dest.append(
                 'SELECT file FROM tags WHERE tag = :tag{}'.format(
-                    primary_index
+                    primary_index[0]
                 )
             )
-            primary_args['tag{}'.format(primary_index)] = (
+            primary_args['tag{}'.format(primary_index[0])] = (
                 polytaxis.encode_tag(key, value)
             )
-            primary_index += 1
-            if primary_index >= primary_limit:
-                break
+            primary_index[0] += 1
+            return primary_index[0] < primary_limit
+
+        for key, value in include:
+            build_select(primary_include)
+
+        if len(primary_include) == 0:
+            primary_include.append('SELECT file FROM tags')
+
         for key, value in exclude:
-            primary_exclude.append(
-                'SELECT file FROM tags WHERE tag != :tag{}'.format(
-                    primary_index
-                )
-            )
-            primary_args['tag{}'.format(primary_index)] = (
-                polytaxis.encode_tag(key, value)
-            )
-            primary_index += 1
-            if primary_index >= primary_limit:
-                break
-        if primary_index == 0:
+            build_select(primary_exclude)
+
+        if primary_index[0] == 0:
             primary_select = 'SELECT id FROM files WHERE tags is not NULL LIMIT :offset, :size'
         else:
             if primary_include:
@@ -106,6 +105,9 @@ class QueryDB(object):
             primary_select = (
                 ' EXCEPT '.join(primary_exclude) + ' LIMIT :offset, :size'
             )
+        
+        # Perform the query in batches, and manually apply the rest of the
+        # filtering.
         batch_size = 100
         batch_index = 0
         while True:
