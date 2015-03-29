@@ -16,7 +16,7 @@ def limit(maxcount, generator):
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Query files and tags in ptmonitor database.',
+        description='Query files and tags in the ptmonitor database.',
     )
     parser.add_argument(
         'args',
@@ -42,7 +42,7 @@ def main():
     parser.add_argument(
         '-u',
         '--unwrap',
-        help='Provide polytaxis-unwraped filename results.  Requires a running unwrapper.',
+        help='Provide polytaxis-unwraped filename results. ptunwrapd must be running.',
         action='store_true',
     )
     args = parser.parse_args()

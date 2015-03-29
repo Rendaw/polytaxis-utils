@@ -4,6 +4,7 @@ import sqlite3
 
 import appdirs
 import polytaxis
+import natsort
 
 def mkdir_p(path):
     try:
@@ -186,11 +187,12 @@ class QueryDB(object):
             if len(batch) < batch_size:
                 break
 
+_natkey = natsort.natsort_keygen()
 def sort(sort_info, rows):
     def cmp(x, y):
         for direction, column in sort_info:
-            x_val = x['tags'][column]
-            y_val = y['tags'][column]
+            x_val = _natkey(x['tags'][column])
+            y_val = _natkey(y['tags'][column])
             less = 0
             if x_val < y_val:
                 less = -1
