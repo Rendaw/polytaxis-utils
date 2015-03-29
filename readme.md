@@ -1,6 +1,10 @@
 # Installation
 
-Run `pip2 install git+https://github.com/Rendaw/ptutils`.
+Run:
+```
+pip2 install git+https://github.com/Rendaw/polytaxis-python
+pip2 install git+https://github.com/Rendaw/ptutils
+```
 
 # Utilities
 

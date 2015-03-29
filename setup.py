@@ -14,9 +14,6 @@ setup(
         'Development Status :: 3 - Alpha',
         'License :: OSI Approved :: BSD License',
     ],
-    dependency_links = [
-        'https://github.com/Rendaw/polytaxis/tarball/master#egg=polytaxis-git',
-    ],
     install_requires = [
         'polytaxis',
         'appdirs',
