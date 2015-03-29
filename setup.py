@@ -5,11 +5,10 @@ setup(
     version = '0.0.1',
     author = 'Rendaw',
     author_email = 'spoo@zarbosoft.com',
-    packages = ['ptmonitor', 'ptq'],
     url = 'https://github.com/Rendaw/ptutils',
     download_url = 'https://github.com/Rendaw/ptutils/tarball/v0.0.1',
     license = 'BSD',
-    description = 'Utilities to work with polytaxis files.',
+    description = 'Utilities for working with polytaxis files.',
     long_description = open('readme.md', 'r').read(),
     classifiers = [
         'Development Status :: 3 - Alpha',
@@ -20,7 +19,6 @@ setup(
     ],
     install_requires = [
         'polytaxis',
-        #'PyQt5',
         'appdirs',
         'watchdog',
         'natsort',
@@ -28,6 +26,7 @@ setup(
         'ExifRead',
         'pytaglib',
     ],
+    packages = ['ptmonitor', 'ptq', 'ptimport'],
     entry_points = {
         'console_scripts': [
             'ptmonitor = ptmonitor.main:main',
