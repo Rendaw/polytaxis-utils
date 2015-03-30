@@ -88,7 +88,7 @@ def main():
                     ),
                 )
             tags = {
-                key: set(value) 
+                key.lower(): set(value) 
                 for key, value in taglib.File(args.file).tags.items()
             } 
         elif ftype == 'image':

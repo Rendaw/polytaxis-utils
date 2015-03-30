@@ -3,12 +3,12 @@ import sqlite3
 
 from mock import patch
 
-import ptmonitor.common
-import ptmonitor.main
+import polytaxis_monitor.common
+import polytaxis_monitor.main
 
 db = sqlite3.connect(':memory:').cursor()
-ptmonitor.common.init_db(db)
-ptmonitor.main.conn = db
+polytaxis_monitor.common.init_db(db)
+polytaxis_monitor.main.conn = db
 
 class TestWrite(unittest.TestCase):
     def setUp(self):
@@ -17,23 +17,23 @@ class TestWrite(unittest.TestCase):
 
     def test_split_abs_path(self):
         self.assertEqual(
-            list(ptmonitor.main.split_abs_path('/a/b/c.txt')),
+            list(polytaxis_monitor.main.split_abs_path('/a/b/c.txt')),
             ['/', 'a', 'b', 'c.txt'],
         )
     
     def test_split_abs_path_win(self):
         self.assertEqual(
-            list(ptmonitor.main.split_abs_path('c:\\a\\b\\c.txt')),
+            list(polytaxis_monitor.main.split_abs_path('c:\\a\\b\\c.txt')),
             ['c:', 'a', 'b', 'c.txt'],
         )
 
     def test_create_file(self):
         tags = {'a': set(['b'])}
-        fid = ptmonitor.main.create_file(
+        fid = polytaxis_monitor.main.create_file(
             '/what/you/at/gamma.vob', 
             tags,
         )
-        ptmonitor.main.add_tags(fid, tags)
+        polytaxis_monitor.main.add_tags(fid, tags)
         self.assertEqual(
             db.execute('SELECT * FROM files').fetchall(),
             [
@@ -51,13 +51,13 @@ class TestWrite(unittest.TestCase):
             ],
         )
 
-        ptmonitor.main.remove_tags(fid)
+        polytaxis_monitor.main.remove_tags(fid)
         self.assertEqual(
             db.execute('SELECT * FROM tags').fetchall(),
             [],
         )
 
-        ptmonitor.main.delete_file(fid)
+        polytaxis_monitor.main.delete_file(fid)
         self.assertEqual(
             db.execute('SELECT * FROM files').fetchall(),
             [],
@@ -93,11 +93,11 @@ class TestQueryDB(unittest.TestCase):
         ]
         self.fids = []
         for filename, tags in self.files:
-            fid = ptmonitor.main.create_file(filename, tags)
+            fid = polytaxis_monitor.main.create_file(filename, tags)
             self.fids.append(fid)
-            ptmonitor.main.add_tags(fid, tags)
-        with patch('ptmonitor.common.open_db', new=lambda: db):
-            self.query = ptmonitor.common.QueryDB()
+            polytaxis_monitor.main.add_tags(fid, tags)
+        with patch('polytaxis_monitor.common.open_db', new=lambda: db):
+            self.query = polytaxis_monitor.common.QueryDB()
 
     def test_query_none(self):
         self.assertCountEqual(
@@ -168,7 +168,7 @@ class TestCommon(unittest.TestCase):
             {'fid': 2, 'segment': '2', 'tags': {'1': 'b', '2': 'a'}},
         ]
         self.assertEqual(
-            ptmonitor.common.sort([('asc', '1'), ('desc', '2')], rows),
+            polytaxis_monitor.common.sort([('asc', '1'), ('desc', '2')], rows),
             [
                 {'fid': 1, 'segment': '1', 'tags': {'1': 'a', '2': 'b'}},
                 {'fid': 0, 'segment': '0', 'tags': {'1': 'a', '2': 'a'}},

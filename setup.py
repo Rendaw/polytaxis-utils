@@ -23,12 +23,20 @@ setup(
         'ExifRead',
         'pytaglib',
     ],
-    packages = ['ptmonitor', 'ptq', 'ptimport'],
+    packages = [
+        'polytaxis_monitor', 
+        'ptq', 
+        'polytaxis_import',
+        'polytaxis_cleanup',
+        'unpt',
+    ],
     entry_points = {
         'console_scripts': [
-            'ptmonitor = ptmonitor.main:main',
+            'polytaxis-monitor = polytaxis_monitor.main:main',
             'ptq = ptq.main:main',
-            'ptimport = ptimport.main:main',
+            'polytaxis-import = polytaxis_import.main:main',
+            'polytaxis-cleanup = polytaxis_cleanup.main:main',
+            'unpt = unpt.main:main',
         ],
     },
 )
