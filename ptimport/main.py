@@ -37,9 +37,6 @@ def main():
     )
     args = parser.parse_args()
 
-    print(sys.getfilesystemencoding())
-    print(type(args.file))
-
     if os.path.isdir(args.file):
         parser.error(
             'File [{}] must be a regular file, but it is a directory.'.format(
@@ -60,7 +57,7 @@ def main():
     if not ftype:
         try:
             mime = magic.Magic(mime=True)
-            ftype = mime.from_file(args.file).split('/', 1)[0]
+            ftype = mime.from_file(args.file).decode('ascii').split('/', 1)[0]
         except:
             if args.verbose:
                 sys.stderr.write(
