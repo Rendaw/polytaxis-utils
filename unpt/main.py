@@ -20,7 +20,9 @@ def main():
     if not os.path.isdir(unwrap_root):
         raise RuntimeError('polytaxis-unwrap mount directory doesn\'t exist.')
 
-    print(os.path.join(unwrap_root, args.path[1:]))
+    path = os.path.abspath(args.path)
+
+    print(os.path.join(unwrap_root, path[1:]))
 
 if __name__ == '__main__':
     main()
