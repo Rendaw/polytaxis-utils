@@ -6,9 +6,11 @@ from mock import patch
 import polytaxis_monitor.common
 import polytaxis_monitor.main
 
-db = sqlite3.connect(':memory:').cursor()
+db = sqlite3.connect(':memory:')
+db_cursor = db.cursor()
 polytaxis_monitor.common.init_db(db)
 polytaxis_monitor.main.conn = db
+polytaxis_monitor.main.cursor = db_cursor
 
 class TestWrite(unittest.TestCase):
     def setUp(self):
@@ -96,7 +98,7 @@ class TestQueryDB(unittest.TestCase):
             fid = polytaxis_monitor.main.create_file(filename, tags)
             self.fids.append(fid)
             polytaxis_monitor.main.add_tags(fid, tags)
-        with patch('polytaxis_monitor.common.open_db', new=lambda: db):
+        with patch('polytaxis_monitor.common.open_db', new=lambda: (db, db_cursor)):
             self.query = polytaxis_monitor.common.QueryDB()
 
     def test_query_none(self):

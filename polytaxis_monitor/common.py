@@ -18,9 +18,9 @@ def mkdir_p(path):
         else: raise
 
 
-def init_db(conn):
-    conn.execute('CREATE TABLE files (id INTEGER PRIMARY KEY, parent INT, segment TEXT NOT NULL, tags TEXT)')
-    conn.execute('CREATE TABLE tags (tag TEXT NOT NULL, file INT NOT NULL)')
+def init_db(cursor):
+    cursor.execute('CREATE TABLE files (id INTEGER PRIMARY KEY, parent INT, segment TEXT NOT NULL, tags TEXT)')
+    cursor.execute('CREATE TABLE tags (tag TEXT NOT NULL, file INT NOT NULL)')
 
 def open_db():
     root = appdirs.user_data_dir('polytaxis-monitor', 'zarbosoft')
@@ -31,11 +31,11 @@ def open_db():
     if not os.path.exists(db_path):
         print('Initializing db at [{}]'.format(db_path))
         do_init_db = True
-    conn = sqlite3.connect(db_path, check_same_thread=False, isolation_level=None)
-    conn = conn.cursor()
+    conn = sqlite3.connect(db_path, check_same_thread=False)
+    cursor = conn.cursor()
     if do_init_db:
-        init_db(conn)
-    return conn
+        init_db(cursor)
+    return conn, cursor
 
 def parse_query(args):
     includes = set()
@@ -67,7 +67,7 @@ def parse_query(args):
 
 class QueryDB(object):
     def __init__(self):
-        self.conn = open_db()
+        conn, self.cursor = open_db()
 
     def query(self, include, exclude):
         # Assemble first several includes/excludes into a sql query
@@ -117,11 +117,11 @@ class QueryDB(object):
             primary_args['offset'] = batch_index
             primary_args['size'] = batch_size
             batch = set(
-                self.conn.execute(primary_select, primary_args).fetchall()
+                self.cursor.execute(primary_select, primary_args).fetchall()
             )
             batch_index += 1
             for (fid,) in batch:
-                segment, tags = self.conn.execute(
+                segment, tags = self.cursor.execute(
                     'SELECT segment, tags FROM files WHERE id = :fid LIMIT 1',
                     {
                         'fid': fid,
@@ -155,7 +155,7 @@ class QueryDB(object):
     def query_path(self, fid):
         segments = []
         while fid is not None:
-            fid, segment = self.conn.execute(
+            fid, segment = self.cursor.execute(
                 'SELECT parent, segment FROM files WHERE id = :id LIMIT 1',
                 {
                     'id': fid,
@@ -169,7 +169,7 @@ class QueryDB(object):
         batch_index = 0
         while True:
             if method == 'prefix':
-                batch = self.conn.execute(
+                batch = self.cursor.execute(
                     'SELECT DISTINCT tag FROM tags WHERE tag LIKE :arg ORDER BY tag ASC LIMIT :offset, :size',
                     {
                         'arg': arg + '%',
@@ -178,7 +178,7 @@ class QueryDB(object):
                     },
                 ).fetchall()
             elif method == 'anywhere':
-                batch = self.conn.execute(
+                batch = self.cursor.execute(
                     'SELECT DISTINCT tag FROM tags WHERE tag LIKE :arg ORDER BY tag ASC LIMIT :offset, :size',
                     {
                         'arg': '%' + arg + '%',

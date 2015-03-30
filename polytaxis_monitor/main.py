@@ -49,7 +49,7 @@ def split_abs_path(path):
     return out
 
 def get_fid(parent, segment):
-    got = conn.execute(
+    got = cursor.execute(
         'SELECT id FROM files WHERE parent is :parent AND segment = :segment LIMIT 1', 
         {
             'parent': parent, 
@@ -67,7 +67,7 @@ def create_file(filename, tags):
     for index, split in enumerate(splits):
         next_fid = get_fid(fid, split)
         if next_fid is None:
-            conn.execute(
+            cursor.execute(
                 'INSERT INTO files (id, parent, segment, tags) VALUES (NULL, :parent, :segment, :tags)',
                 {
                     'parent': fid,
@@ -75,21 +75,21 @@ def create_file(filename, tags):
                     'tags': polytaxis.encode_tags(tags) if index == last_index else None,
                 },
             )
-            next_fid = conn.lastrowid
+            next_fid = cursor.lastrowid
         fid = next_fid
     return fid
 
 def delete_file(fid):
     parent = True
     while fid is not None:
-        (parent,) = conn.execute(
+        (parent,) = cursor.execute(
             'SELECT parent FROM files WHERE id is :id',
             {
                 'id': fid,
             }
         ).fetchone()
-        conn.execute('DELETE FROM files WHERE id is :id', {'id': fid})
-        if conn.execute(
+        cursor.execute('DELETE FROM files WHERE id is :id', {'id': fid})
+        if cursor.execute(
                 'SELECT count(1) FROM files WHERE parent is :id',
                 {
                     'id': fid,
@@ -100,7 +100,7 @@ def delete_file(fid):
 
 def add_tags(fid, tags):
     if not tags:
-        conn.execute('INSERT INTO tags (tag, file) VALUES (:tag, :fid)',
+        cursor.execute('INSERT INTO tags (tag, file) VALUES (:tag, :fid)',
             {
                 'tag': 'untagged',
                 'fid': fid,
@@ -110,7 +110,7 @@ def add_tags(fid, tags):
 
     for key, values in tags.items():
         for value in values:
-            conn.execute('INSERT INTO tags (tag, file) VALUES (:tag, :fid)',
+            cursor.execute('INSERT INTO tags (tag, file) VALUES (:tag, :fid)',
                 {
                     'tag': polytaxis.encode_tag(key, value),
                     'fid': fid,
@@ -118,7 +118,7 @@ def add_tags(fid, tags):
             )
 
 def remove_tags(fid):
-    conn.execute('DELETE FROM tags WHERE file = :fid', {'fid': fid})
+    cursor.execute('DELETE FROM tags WHERE file = :fid', {'fid': fid})
 
 def process(filename):
     filename = os.path.abspath(filename)
@@ -159,7 +159,7 @@ def move_file(source, dest):
         dfid = get_fid(dparent, split)
         if dfid is None:
             return
-    conn.execute(
+    cursor.execute(
         'UPDATE files SET parent = :parent, segment = :segment WHERE id = :id',
         {
             'parent': dfid,
@@ -171,15 +171,19 @@ def move_file(source, dest):
 class MonitorHandler(watchdog.events.FileSystemEventHandler):
     def on_created(self, event):
         process(event.src_path)
+        conn.commit()
 
     def on_deleted(self, event):
         process(event.src_path)
+        conn.commit()
 
     def on_modified(self, event):
         process(event.src_path)
+        conn.commit()
 
     def on_moved(self, event):
         move_file(event.src_path, event.dest_path)
+        conn.commit()
 
 def main():
     parser = argparse.ArgumentParser(
@@ -216,8 +220,9 @@ def main():
         global verbose
         verbose = True
     
+    global cursor
     global conn
-    conn = common.open_db()
+    conn, cursor = common.open_db()
 
     if args.check:
         print('Checking...')
@@ -229,7 +234,7 @@ def main():
             if not scanned:
                 stack.append((True, fid, segment))
                 parts.append(segment)
-                for next_segment, next_id in conn.execute(
+                for next_segment, next_id in cursor.execute(
                         'SELECT segment, id FROM files WHERE parent is :parent',
                         {
                             'parent': fid,
@@ -254,6 +259,8 @@ def main():
                     if verbose:
                         print('Scanning file [{}]'.format(abs_filename))
                     process(abs_filename)
+
+    conn.commit()
 
     observer = watchdog.observers.Observer()
     handler = MonitorHandler()
