@@ -10,8 +10,9 @@ import watchdog.observers
 import appdirs
 import polytaxis
 
-from . import common
+from polytaxis_monitor import common
 
+verbose = False
 
 die = False
 def signal_handler(signal, frame):
@@ -202,7 +203,18 @@ def main():
         action='store_true',
         help='Walk directories for missed files before monitoring.',
     )
+    parser.add_argument(
+        '-v',
+        '--verbose',
+        action='store_true',
+        help='Enable verbose output.',
+    )
     args = parser.parse_args()
+
+    if args.verbose:
+        common.verbose = True
+        global verbose
+        verbose = True
     
     global conn
     conn = common.open_db()
@@ -225,7 +237,8 @@ def main():
                     stack.append((False, next_id, next_segment))
             else:
                 joined = '/' + os.path.join(*parts)
-                print('Checking [{}]'.format(joined)) # DEBUG
+                if verbose:
+                    print('Checking [{}]'.format(joined))
                 if joined and not os.path.exists(joined):
                     print('[{}] no longer exists, removing'.format(joined))
                     remove_tags(fid)
@@ -237,7 +250,10 @@ def main():
             print('Scanning [{}]...'.format(path))
             for base, dirnames, filenames in os.walk(path):
                 for filename in filenames:
-                    process(os.path.join(base, filename))
+                    abs_filename = os.path.join(base, filename)
+                    if verbose:
+                        print('Scanning file [{}]'.format(abs_filename))
+                    process(abs_filename)
 
     observer = watchdog.observers.Observer()
     handler = MonitorHandler()

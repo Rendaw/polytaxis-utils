@@ -7,6 +7,8 @@ import appdirs
 import polytaxis
 import natsort
 
+verbose = False
+
 def mkdir_p(path):
     try:
         os.makedirs(path)
@@ -21,7 +23,7 @@ def init_db(conn):
     conn.execute('CREATE TABLE tags (tag TEXT NOT NULL, file INT NOT NULL)')
 
 def open_db():
-    root = appdirs.user_data_dir('ptmonitor', 'zarbosoft')
+    root = appdirs.user_data_dir('polytaxis-monitor', 'zarbosoft')
     mkdir_p(root)
 
     db_path = os.path.join(root, 'db.sqlite3')
