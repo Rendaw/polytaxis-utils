@@ -59,7 +59,9 @@ For usage, run `polytaxis-import -h`.
 
 `polytaxis-cleanup` is a collection of common tag modification scripts.
 
-For usage, run `polytaxis-cleanup -h`.
+For general usage, run `polytaxis-cleanup -h`.
+
+For subcommand usage, run `polytaxis-cleanup SUBCOMMAND -h` (example: `polytaxis-cleanup extract -h`).
 
 ## unpt
 
