@@ -48,6 +48,18 @@ def split_abs_path(path):
     out.extend(extend)
     return out
 
+def get_fid_and_tags(parent, segment):
+    got = cursor.execute(
+        'SELECT id, tags FROM files WHERE parent is :parent AND segment = :segment LIMIT 1', 
+        {
+            'parent': parent, 
+            'segment': segment,
+        },
+    ).fetchone()
+    if got is None:
+        return None, None
+    return got[0], got[1]
+
 def get_fid(parent, segment):
     got = cursor.execute(
         'SELECT id FROM files WHERE parent is :parent AND segment = :segment LIMIT 1', 
@@ -125,18 +137,23 @@ def process(filename):
     is_file = os.path.isfile(filename)
     tags = polytaxis.get_tags(filename) if is_file else None
     fid = None
-    for split in split_abs_path(filename):
+    splits = split_abs_path(filename)
+    last_split = splits.pop()
+    for split in splits:
         fid = get_fid(fid, split)
         if fid is None:
             break
+    fid, old_tags = get_fid_and_tags(fid, last_split)
     if tags is None and fid is None:
         pass
     elif tags is not None and fid is None:
         fid = create_file(filename, tags)
         add_tags(fid, tags)
     elif tags is not None and fid is not None:
-        remove_tags(fid)
-        add_tags(fid, tags)
+        old_tags = polytaxis.decode_tags(old_tags)
+        if tags != old_tags:
+            remove_tags(fid)
+            add_tags(fid, tags)
     elif is_file and tags is None and fid is not None:
         remove_tags(fid)
         delete_file(fid)
@@ -196,16 +213,10 @@ def main():
         default=[],
     )
     parser.add_argument(
-        '-c',
-        '--check',
-        action='store_true',
-        help='Check known files, fix errors before monitoring.',
-    )
-    parser.add_argument(
         '-s',
         '--scan',
         action='store_true',
-        help='Walk directories for missed files before monitoring.',
+        help='Walk directories for missed file changes before monitoring.',
     )
     parser.add_argument(
         '-v',
@@ -224,8 +235,8 @@ def main():
     global conn
     conn, cursor = common.open_db()
 
-    if args.check:
-        print('Checking...')
+    if args.scan:
+        print('Looking for deleted files...')
         stack = [(False, None, '')]
         parts = []
         last_parent = None
@@ -250,7 +261,6 @@ def main():
                     delete_file(fid)
                 parts.pop()
 
-    if args.scan:
         for path in args.directory:
             print('Scanning [{}]...'.format(path))
             for base, dirnames, filenames in os.walk(path):
