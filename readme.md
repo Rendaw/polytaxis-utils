@@ -5,22 +5,22 @@ Requires Python 3.
 Run:
 ```
 pip install git+https://github.com/Rendaw/polytaxis-python
-pip install git+https://github.com/Rendaw/ptutils
+pip install git+https://github.com/Rendaw/polytaxis-utils
 ```
 
 # Utilities
 
-## ptmonitor
+## polytaxis-monitor
 
-`ptmonitor` monitors directories for polytaxis file additions/modifications/deletions and indexes their tags.
+`polytaxis-monitor` monitors directories for polytaxis file additions/modifications/deletions and indexes their tags.
 
 Files with no tags will be categorized with the tag 'untagged'.
 
-For usage, run `ptmonitor -h`.
+For usage, run `polytaxis-monitor -h`.
 
 ## ptq
 
-`ptq` is a command line tool to query the `ptmonitor` database. `ptq` can search for files by tag as well as search available tags.
+`ptq` is a command line tool to query the `polytaxis-monitor` database. `ptq` can search for files by tag as well as search available tags.
 
 For information on flags and other arguments, run `ptq -h`.
 
@@ -49,9 +49,21 @@ based on the query modifier ('prefix' or 'anywhere').
 Example:
 ptq -t prefix album=        Lists all albums.
 
-## ptimport
+## polytaxis-import
 
-`ptimport` is a command line tool to convert a file with existing filetype-specific tags into a polytaxis header.
+`polytaxis-import` is a command line tool to convert a file with existing filetype-specific tags into a polytaxis header.
 
-For usage, run `ptimport -h`.
+For usage, run `polytaxis-import -h`.
+
+## polytaxis-cleanup
+
+`polytaxis-cleanup` is a collection of common tag modification scripts.
+
+For usage, run `polytaxis-cleanup -h`.
+
+## unpt
+
+`unpt` translates normal paths to unwrapped paths for use with [polytaxis-unwrap](https://github.com/Rendaw/polytaxis-unwrap).
+
+For usage, run 'unpt -h`.
 

@@ -4,7 +4,7 @@ import os
 
 import appdirs
 
-import ptmonitor.common
+import polytaxis_monitor.common
 
 def limit(maxcount, generator):
     count = 0
@@ -16,7 +16,7 @@ def limit(maxcount, generator):
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Query files and tags in the ptmonitor database.',
+        description='Query files and tags in the polytaxis_monitor database.',
     )
     parser.add_argument(
         'args',
@@ -53,7 +53,7 @@ def main():
             'mount',
         )
 
-    db = ptmonitor.common.QueryDB()
+    db = polytaxis_monitor.common.QueryDB()
 
     if args.tags:
         if len(args.args) > 1:
@@ -71,9 +71,9 @@ def main():
         for row in rows:
             print(row)
     else:
-        includes, excludes, sort, columns = ptmonitor.common.parse_query(args.args)
+        includes, excludes, sort, columns = polytaxis_monitor.common.parse_query(args.args)
         rows = [row for row in limit(args.limit, db.query(includes, excludes))]
-        ptmonitor.common.sort(sort, rows)
+        polytaxis_monitor.common.sort(sort, rows)
         for row in rows:
             path = db.query_path(row['fid'])
             if len(path) >= 2 and path[1] == ':':

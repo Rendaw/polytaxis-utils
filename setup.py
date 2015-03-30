@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(
-    name = 'ptutils',
+    name = 'polytaxis-utils',
     version = '0.0.1',
     author = 'Rendaw',
     author_email = 'spoo@zarbosoft.com',
