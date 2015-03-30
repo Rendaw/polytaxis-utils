@@ -37,6 +37,9 @@ def main():
     )
     args = parser.parse_args()
 
+    print(sys.getfilesystemencoding())
+    print(type(args.file))
+
     if os.path.isdir(args.file):
         parser.error(
             'File [{}] must be a regular file, but it is a directory.'.format(

@@ -1,6 +1,7 @@
 import errno
 import os
 import sqlite3
+import functools
 
 import appdirs
 import polytaxis
@@ -26,7 +27,7 @@ def open_db():
     db_path = os.path.join(root, 'db.sqlite3')
     do_init_db = False
     if not os.path.exists(db_path):
-        print(u'Initializing db at [{}]'.format(db_path))
+        print('Initializing db at [{}]'.format(db_path))
         do_init_db = True
     conn = sqlite3.connect(db_path, check_same_thread=False, isolation_level=None)
     conn = conn.cursor()
@@ -56,9 +57,9 @@ def parse_query(args):
             continue
         exclude = shifftest(item, '-')
         if exclude:
-            excludes.append(polytaxis.decode_tag(exclude))
+            excludes.append(polytaxis.decode_tag(exclude.encode('utf-8')))
             continue
-        includes.append(polytaxis.decode_tag(item))
+        includes.append(polytaxis.decode_tag(item.encode('utf-8')))
         self.query_changed.emit(includes, excludes, columns, sort)
     return includes, excludes, sort, columns
 
@@ -185,7 +186,7 @@ class QueryDB(object):
                 ).fetchall()
             batch_index += 1 
             for (tag,) in batch:
-                yield tag
+                yield tag.decode('utf-8')
             if len(batch) < batch_size:
                 break
 
@@ -207,5 +208,5 @@ def sort(sort_info, rows):
             else:
                 return less
         return 0
-    return sorted(rows, cmp)
+    return sorted(rows, key=functools.cmp_to_key(cmp))
 

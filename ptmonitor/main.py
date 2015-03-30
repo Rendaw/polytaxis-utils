@@ -10,7 +10,7 @@ import watchdog.observers
 import appdirs
 import polytaxis
 
-import common
+from . import common
 
 
 die = False
@@ -208,7 +208,7 @@ def main():
     conn = common.open_db()
 
     if args.check:
-        print(u'Checking...')
+        print('Checking...')
         stack = [(False, None, '')]
         parts = []
         last_parent = None
@@ -225,16 +225,16 @@ def main():
                     stack.append((False, next_id, next_segment))
             else:
                 joined = '/' + os.path.join(*parts)
-                print(u'Checking [{}]'.format(joined)) # DEBUG
+                print('Checking [{}]'.format(joined)) # DEBUG
                 if joined and not os.path.exists(joined):
-                    print(u'[{}] no longer exists, removing'.format(joined))
+                    print('[{}] no longer exists, removing'.format(joined))
                     remove_tags(fid)
                     delete_file(fid)
                 parts.pop()
 
     if args.scan:
         for path in args.directory:
-            print(u'Scanning [{}]...'.format(path))
+            print('Scanning [{}]...'.format(path))
             for base, dirnames, filenames in os.walk(path):
                 for filename in filenames:
                     process(os.path.join(base, filename))
@@ -242,7 +242,7 @@ def main():
     observer = watchdog.observers.Observer()
     handler = MonitorHandler()
     for path in args.directory:
-        print(u'Starting watch on [{}]'.format(path))
+        print('Starting watch on [{}]'.format(path))
         observer.schedule(handler, path, recursive=True)
     observer.start()
     try:

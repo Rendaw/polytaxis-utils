@@ -37,17 +37,17 @@ class TestWrite(unittest.TestCase):
         self.assertEqual(
             db.execute('SELECT * FROM files').fetchall(),
             [
-                (1, None, u'/', None),
-                (2, 1, u'what', None),
-                (3, 2, u'you', None),
-                (4, 3, u'at', None),
-                (5, 4, u'gamma.vob', 'a=b\n'),
+                (1, None, '/', None),
+                (2, 1, 'what', None),
+                (3, 2, 'you', None),
+                (4, 3, 'at', None),
+                (5, 4, 'gamma.vob', b'a=b\n'),
             ],
         )
         self.assertEqual(
             db.execute('SELECT * FROM tags').fetchall(),
             [
-                (u'a=b', 5),
+                (b'a=b', 5),
             ],
         )
 
@@ -100,38 +100,38 @@ class TestQueryDB(unittest.TestCase):
             self.query = ptmonitor.common.QueryDB()
 
     def test_query_none(self):
-        self.assertItemsEqual(
+        self.assertCountEqual(
             list(self.query.query([], [])),
             [
-                {'fid': self.fids[0], 'segment': u'gamma.vob', 'tags': self.tag_sets[0]},
-                {'fid': self.fids[1], 'segment': u'loog.txt', 'tags': self.tag_sets[1]},
-                {'fid': self.fids[2], 'segment': u'noxx', 'tags': self.tag_sets[2]},
+                {'fid': self.fids[0], 'segment': 'gamma.vob', 'tags': self.tag_sets[0]},
+                {'fid': self.fids[1], 'segment': 'loog.txt', 'tags': self.tag_sets[1]},
+                {'fid': self.fids[2], 'segment': 'noxx', 'tags': self.tag_sets[2]},
             ],
         )
 
     def test_query_include(self):
-        self.assertItemsEqual(
+        self.assertCountEqual(
             list(self.query.query([('red', None)], [])),
             [
-                {'fid': self.fids[0], 'segment': u'gamma.vob', 'tags': self.tag_sets[0]},
-                {'fid': self.fids[1], 'segment': u'loog.txt', 'tags': self.tag_sets[1]},
+                {'fid': self.fids[0], 'segment': 'gamma.vob', 'tags': self.tag_sets[0]},
+                {'fid': self.fids[1], 'segment': 'loog.txt', 'tags': self.tag_sets[1]},
             ],
         )
     
     def test_query_exclude(self):
-        self.assertItemsEqual(
+        self.assertCountEqual(
             list(self.query.query([], [('juicy', None)])),
             [
-                {'fid': self.fids[1], 'segment': u'loog.txt', 'tags': self.tag_sets[1]},
-                {'fid': self.fids[2], 'segment': u'noxx', 'tags': self.tag_sets[2]},
+                {'fid': self.fids[1], 'segment': 'loog.txt', 'tags': self.tag_sets[1]},
+                {'fid': self.fids[2], 'segment': 'noxx', 'tags': self.tag_sets[2]},
             ],
         )
     
     def test_query_include_exclude(self):
-        self.assertItemsEqual(
+        self.assertCountEqual(
             list(self.query.query([('seven', None), ('red', None)], [('date', '99')])),
             [
-                {'fid': self.fids[1], 'segment': u'loog.txt', 'tags': self.tag_sets[1]},
+                {'fid': self.fids[1], 'segment': 'loog.txt', 'tags': self.tag_sets[1]},
             ],
         )
 
@@ -145,9 +145,9 @@ class TestQueryDB(unittest.TestCase):
         self.assertEqual(
             list(self.query.query_tags('prefix', 'date=')),
             [
-                u'date=103',
-                u'date=98', 
-                u'date=99', 
+                'date=103',
+                'date=98', 
+                'date=99', 
             ],
         )
 
@@ -155,24 +155,24 @@ class TestQueryDB(unittest.TestCase):
         self.assertEqual(
             list(self.query.query_tags('anywhere', 'r')),
             [
-                u'red', 
-                u'under', 
+                'red', 
+                'under', 
             ],
         )
 
 class TestCommon(unittest.TestCase):
     def test_sort(self):
         rows = [
-            {'fid': 0, 'segment': u'0', 'tags': {'1': 'a', '2': 'a'}},
-            {'fid': 1, 'segment': u'1', 'tags': {'1': 'a', '2': 'b'}},
-            {'fid': 2, 'segment': u'2', 'tags': {'1': 'b', '2': 'a'}},
+            {'fid': 0, 'segment': '0', 'tags': {'1': 'a', '2': 'a'}},
+            {'fid': 1, 'segment': '1', 'tags': {'1': 'a', '2': 'b'}},
+            {'fid': 2, 'segment': '2', 'tags': {'1': 'b', '2': 'a'}},
         ]
         self.assertEqual(
             ptmonitor.common.sort([('asc', '1'), ('desc', '2')], rows),
             [
-                {'fid': 1, 'segment': u'1', 'tags': {'1': 'a', '2': 'b'}},
-                {'fid': 0, 'segment': u'0', 'tags': {'1': 'a', '2': 'a'}},
-                {'fid': 2, 'segment': u'2', 'tags': {'1': 'b', '2': 'a'}},
+                {'fid': 1, 'segment': '1', 'tags': {'1': 'a', '2': 'b'}},
+                {'fid': 0, 'segment': '0', 'tags': {'1': 'a', '2': 'a'}},
+                {'fid': 2, 'segment': '2', 'tags': {'1': 'b', '2': 'a'}},
             ],
         )
 

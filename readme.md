@@ -1,9 +1,11 @@
 # Installation
 
+Requires Python 3.
+
 Run:
 ```
-pip2 install git+https://github.com/Rendaw/polytaxis-python
-pip2 install git+https://github.com/Rendaw/ptutils
+pip install git+https://github.com/Rendaw/polytaxis-python
+pip install git+https://github.com/Rendaw/ptutils
 ```
 
 # Utilities
