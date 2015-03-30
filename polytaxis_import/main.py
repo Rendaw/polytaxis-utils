@@ -57,6 +57,7 @@ def main():
             raise RuntimeError(
                 'File [{}] already has a polytaxis header.'
                 ' Use -o/--overwrite to re-import tags.'
+                .format(args.file)
             )
 
     ftype = args.type
