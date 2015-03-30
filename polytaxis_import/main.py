@@ -35,6 +35,12 @@ def main():
         help='Don\'t try to detect the file type. Instead, use this type.',
         choices=['audio', 'image'],
     )
+    parser.add_argument(
+        '-l',
+        '--lowercase',
+        help='Make all tag keys lowercase.',
+        action='store_true',
+    )
     args = parser.parse_args()
 
     if os.path.isdir(args.file):
@@ -92,7 +98,7 @@ def main():
                 for key, value in taglib.File(args.file).tags.items()
             } 
         elif ftype == 'image':
-            with polytaxis.open_unwrap(args.file, 'r') as file:
+            with polytaxis.open_unwrap(args.file, 'rb') as file:
                 tags = { 
                     key: set([str(value)])
                     for key, value in exifread.process_file(file).items()
@@ -117,6 +123,13 @@ def main():
                 args.file
             ),
         )
+
+    if args.lowercase:
+        temp = {
+            key.lower(): values for key, values in tags.items()
+        }
+        tags = temp
+
     if args.verbose:
         print('Imported tags: {}'.format(pprint.pformat(tags)))
     polytaxis.set_tags(args.file, tags)
