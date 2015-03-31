@@ -39,17 +39,17 @@ class TestWrite(unittest.TestCase):
         self.assertEqual(
             db.execute('SELECT * FROM files').fetchall(),
             [
-                (1, None, b'/', None),
-                (2, 1, b'what', None),
-                (3, 2, b'you', None),
-                (4, 3, b'at', None),
-                (5, 4, b'gamma.vob', b'a=b\n'),
+                (1, None, '/', None),
+                (2, 1, 'what', None),
+                (3, 2, 'you', None),
+                (4, 3, 'at', None),
+                (5, 4, 'gamma.vob', 'a=b\n'),
             ],
         )
         self.assertEqual(
             db.execute('SELECT * FROM tags').fetchall(),
             [
-                (b'a=b', 5),
+                ('a=b', 5),
             ],
         )
 

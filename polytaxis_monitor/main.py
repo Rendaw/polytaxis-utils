@@ -53,19 +53,19 @@ def get_fid_and_raw_tags(parent, segment):
         'SELECT id, tags FROM files WHERE parent is :parent AND segment = :segment LIMIT 1', 
         {
             'parent': parent, 
-            'segment': segment.encode('utf-8'),
+            'segment': segment,
         },
     ).fetchone()
     if got is None:
         return None, None
-    return got[0], got[1]
+    return got[0], got[1].encode('utf-8')
 
 def get_fid(parent, segment):
     got = cursor.execute(
         'SELECT id FROM files WHERE parent is :parent AND segment = :segment LIMIT 1', 
         {
             'parent': parent, 
-            'segment': segment.encode('utf-8'),
+            'segment': segment,
         },
     ).fetchone()
     if got is None:
@@ -83,8 +83,8 @@ def create_file(filename, tags):
                 'INSERT INTO files (id, parent, segment, tags) VALUES (NULL, :parent, :segment, :tags)',
                 {
                     'parent': fid,
-                    'segment': split.encode('utf-8'),
-                    'tags': polytaxis.encode_tags(tags) if index == last_index else None,
+                    'segment': split,
+                    'tags': polytaxis.encode_tags(tags).decode('utf-8') if index == last_index else None,
                 },
             )
             next_fid = cursor.lastrowid
@@ -111,20 +111,11 @@ def delete_file(fid):
         fid = parent
 
 def add_tags(fid, tags):
-    if not tags:
-        cursor.execute('INSERT INTO tags (tag, file) VALUES (:tag, :fid)',
-            {
-                'tag': 'untagged'.encode('utf-8'),
-                'fid': fid,
-            }
-        )
-        return
-
     for key, values in tags.items():
         for value in values:
             cursor.execute('INSERT INTO tags (tag, file) VALUES (:tag, :fid)',
                 {
-                    'tag': polytaxis.encode_tag(key, value),
+                    'tag': polytaxis.encode_tag(key, value).decode('utf-8'),
                     'fid': fid,
                 }
             )
@@ -136,6 +127,8 @@ def process(filename):
     filename = os.path.abspath(filename)
     is_file = os.path.isfile(filename)
     tags = polytaxis.get_tags(filename) if is_file else None
+    if not tags and tags is not None:
+        tags = {'untagged': set([None])}
     fid = None
     splits = split_abs_path(filename)
     last_split = splits.pop()
@@ -143,14 +136,14 @@ def process(filename):
         fid = get_fid(fid, split)
         if fid is None:
             break
-    fid, old_tags = get_fid_and_raw_tags(fid, last_split)
+    fid, old_raw_tags = get_fid_and_raw_tags(fid, last_split)
     if tags is None and fid is None:
         pass
     elif tags is not None and fid is None:
         fid = create_file(filename, tags)
         add_tags(fid, tags)
     elif tags is not None and fid is not None:
-        old_tags = polytaxis.decode_tags(old_tags)
+        old_tags = polytaxis.decode_tags(old_raw_tags)
         if tags != old_tags:
             remove_tags(fid)
             add_tags(fid, tags)
@@ -180,7 +173,7 @@ def move_file(source, dest):
         'UPDATE files SET parent = :parent, segment = :segment WHERE id = :id',
         {
             'parent': dfid,
-            'segment': new_name.encode('utf-8'),
+            'segment': new_name,
             'id': sfid,
         },
     )
@@ -237,29 +230,31 @@ def main():
 
     if args.scan:
         print('Looking for deleted files...')
-        stack = [(False, None, '')]
+        stack = [(False, None, None)]
         parts = []
         last_parent = None
         while stack:
             scanned, fid, segment = stack.pop()
             if not scanned:
                 stack.append((True, fid, segment))
-                parts.append(segment)
+                if segment:
+                    parts.append(segment)
                 for next_segment, next_id in cursor.execute(
                         'SELECT segment, id FROM files WHERE parent is :parent',
                         {
                             'parent': fid,
                         }):
-                    stack.append((False, next_id, next_segment.decode('utf-8')))
+                    stack.append((False, next_id, next_segment))
             else:
-                joined = '/' + os.path.join(*parts)
-                if verbose:
-                    print('Checking [{}]'.format(joined))
-                if joined and not os.path.exists(joined):
-                    print('[{}] no longer exists, removing'.format(joined))
-                    remove_tags(fid)
-                    delete_file(fid)
-                parts.pop()
+                if parts:
+                    joined = os.path.join(*parts)
+                    if verbose:
+                        print('Checking [{}]'.format(joined))
+                    if joined and not os.path.exists(joined):
+                        print('[{}] no longer exists, removing'.format(joined))
+                        remove_tags(fid)
+                        delete_file(fid)
+                    parts.pop()
 
         for path in args.directory:
             print('Scanning [{}]...'.format(path))

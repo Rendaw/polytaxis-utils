@@ -92,7 +92,7 @@ class QueryDB(object):
                 )
             )
             primary_args['tag{}'.format(primary_index[0])] = (
-                polytaxis.encode_tag(key, value)
+                polytaxis.encode_tag(key, value).decode('utf-8')
             )
             primary_index[0] += 1
             return primary_index[0] < primary_limit
@@ -133,7 +133,7 @@ class QueryDB(object):
                         'fid': fid,
                     },
                 ).fetchone()
-                tags = polytaxis.decode_tags(tags)
+                tags = polytaxis.decode_tags(tags.encode('utf-8'))
                 def manual_filter():
                     for key, value in include:
                         found_values = tags.get(key)
@@ -152,7 +152,7 @@ class QueryDB(object):
                     continue
                 yield {
                     'fid': fid,
-                    'segment': segment.decode('utf-8'),
+                    'segment': segment,
                     'tags': tags,
                 }
             if len(batch) < batch_size:
@@ -167,11 +167,10 @@ class QueryDB(object):
                     'id': fid,
                 },
             ).fetchone()
-            segments.append(segment.decode('utf-8'))
+            segments.append(segment)
         return os.path.join(*reversed(segments))
 
     def query_tags(self, method, arg):
-        arg = arg.encode('utf-8')
         batch_size = 100
         batch_index = 0
         while True:
@@ -179,7 +178,7 @@ class QueryDB(object):
                 batch = self.cursor.execute(
                     'SELECT DISTINCT tag FROM tags WHERE tag LIKE :arg ORDER BY tag ASC LIMIT :offset, :size',
                     {
-                        'arg': arg + b'%',
+                        'arg': arg + '%',
                         'offset': batch_index,
                         'size': batch_size,
                     },
@@ -188,14 +187,14 @@ class QueryDB(object):
                 batch = self.cursor.execute(
                     'SELECT DISTINCT tag FROM tags WHERE tag LIKE :arg ORDER BY tag ASC LIMIT :offset, :size',
                     {
-                        'arg': b'%' + arg + b'%',
+                        'arg': '%' + arg + '%',
                         'offset': batch_index,
                         'size': batch_size,
                     },
                 ).fetchall()
             batch_index += 1 
             for (tag,) in batch:
-                yield tag.decode('utf-8')
+                yield tag
             if len(batch) < batch_size:
                 break
 
