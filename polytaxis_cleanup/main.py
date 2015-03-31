@@ -86,6 +86,7 @@ def main():
                     filename
                 )
             )
+            return
 
         if args.action in modify_headers:
             if args.action == 'lowercase':
