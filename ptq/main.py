@@ -45,11 +45,17 @@ def main():
         help='Provide polytaxis-unwrap\'ed filename results. polytaxis-unwrap must be running.',
         action='store_true',
     )
+    parser.add_argument(
+        '-0',
+        '--print0',
+        help='Separate filenames with null characters (0x00) rather than newlines.',
+        action='store_true',
+    )
     args = parser.parse_args()
 
     if args.unwrap:
         unwrap_root = os.path.join(
-            appdirs.user_data_dir('ptunwrap', 'zarbosoft'),
+            appdirs.user_data_dir('polytaxis-unwrap', 'zarbosoft'),
             'mount',
         )
 
@@ -78,11 +84,15 @@ def main():
             path = db.query_path(row['fid'])
             if len(path) >= 2 and path[1] == ':':
                 path = path[2:]
-            path = path[1:]
             if args.unwrap:
+                path = path[1:]
                 path = os.path.join(unwrap_root, path)
-            print(path)
-    if len(rows) == args.limit:
+            if args.print0:
+                sys.stdout.write(path)
+                sys.stdout.write('\x00')
+            else:
+                print(path)
+    if not args.print0 and len(rows) == args.limit:
         sys.stderr.write('Stoped at {} results.\n'.format(args.limit))
 
 if __name__ == '__main__':
