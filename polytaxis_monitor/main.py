@@ -250,7 +250,7 @@ def main():
                         {
                             'parent': fid,
                         }):
-                    stack.append((False, next_id, next_segment))
+                    stack.append((False, next_id, next_segment.decode('utf-8')))
             else:
                 joined = '/' + os.path.join(*parts)
                 if verbose:
