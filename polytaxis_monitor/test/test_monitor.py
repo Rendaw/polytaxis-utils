@@ -39,11 +39,11 @@ class TestWrite(unittest.TestCase):
         self.assertEqual(
             db.execute('SELECT * FROM files').fetchall(),
             [
-                (1, None, '/', None),
-                (2, 1, 'what', None),
-                (3, 2, 'you', None),
-                (4, 3, 'at', None),
-                (5, 4, 'gamma.vob', b'a=b\n'),
+                (1, None, b'/', None),
+                (2, 1, b'what', None),
+                (3, 2, b'you', None),
+                (4, 3, b'at', None),
+                (5, 4, b'gamma.vob', b'a=b\n'),
             ],
         )
         self.assertEqual(
@@ -163,6 +163,28 @@ class TestQueryDB(unittest.TestCase):
         )
 
 class TestCommon(unittest.TestCase):
+    def test_parse_args(self):
+        includes, excludes, sort, columns = (
+            polytaxis_monitor.common.parse_query([
+                'key1',
+                'key2=val2',
+                'sort-:key3',
+                'sort+:key3',
+                'col:key4',
+                '-key5',
+            ])
+        )
+        self.assertCountEqual(
+            includes, 
+            [
+                ('key1', None),
+                ('key2', 'val2'),
+            ]
+        )
+        self.assertCountEqual(excludes, [('key5', None)])
+        self.assertEqual(sort, [('desc', 'key3'), ('asc', 'key3')])
+        self.assertEqual(columns, ['key3', 'key4'])
+
     def test_sort(self):
         rows = [
             {'fid': 0, 'segment': '0', 'tags': {'1': 'a', '2': 'a'}},

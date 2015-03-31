@@ -37,32 +37,38 @@ def open_db():
         init_db(cursor)
     return conn, cursor
 
+def _shifttext(source, match):
+    if not source.startswith(match):
+        return None
+    return source[len(match):]
+
 def parse_query(args):
     includes = set()
     excludes = set()
     columns = []
     sort = []
     for item in args:
-        col = shifttext(item, 'col:')
+        col = _shifttext(item, 'col:')
         if col:
             columns.append(col)
             continue
-        sort_asc = shifttext(item, 'sort+:')
+        sort_asc = _shifttext(item, 'sort+:')
         if sort_asc:
-            columns.append(sort_asc)
+            if sort_desc not in columns:
+                columns.append(sort_asc)
             sort.append(('asc', sort_asc))
             continue
-        sort_desc = shifttext(item, 'sort-:')
+        sort_desc = _shifttext(item, 'sort-:')
         if sort_desc:
-            columns.append(sort_desc)
+            if sort_desc not in columns:
+                columns.append(sort_desc)
             sort.append(('desc', sort_desc))
             continue
-        exclude = shifftest(item, '-')
+        exclude = _shifttext(item, '-')
         if exclude:
-            excludes.append(polytaxis.decode_tag(exclude.encode('utf-8')))
+            excludes.add(polytaxis.decode_tag(exclude.encode('utf-8')))
             continue
-        includes.append(polytaxis.decode_tag(item.encode('utf-8')))
-        self.query_changed.emit(includes, excludes, columns, sort)
+        includes.add(polytaxis.decode_tag(item.encode('utf-8')))
     return includes, excludes, sort, columns
 
 class QueryDB(object):
@@ -79,7 +85,7 @@ class QueryDB(object):
         primary_limit = 3
         primary_index = [0]
 
-        def build_select(dest):
+        def build_select(dest, key, value):
             dest.append(
                 'SELECT file FROM tags WHERE tag = :tag{}'.format(
                     primary_index[0]
@@ -92,13 +98,13 @@ class QueryDB(object):
             return primary_index[0] < primary_limit
 
         for key, value in include:
-            build_select(primary_include)
+            build_select(primary_include, key, value)
 
         if len(primary_include) == 0:
             primary_include.append('SELECT file FROM tags')
 
         for key, value in exclude:
-            build_select(primary_exclude)
+            build_select(primary_exclude, key, value)
 
         if primary_index[0] == 0:
             primary_select = 'SELECT id FROM files WHERE tags is not NULL LIMIT :offset, :size'
@@ -146,7 +152,7 @@ class QueryDB(object):
                     continue
                 yield {
                     'fid': fid,
-                    'segment': segment,
+                    'segment': segment.decode('utf-8'),
                     'tags': tags,
                 }
             if len(batch) < batch_size:
@@ -161,10 +167,11 @@ class QueryDB(object):
                     'id': fid,
                 },
             ).fetchone()
-            segments.append(segment)
+            segments.append(segment.decode('utf-8'))
         return os.path.join(*reversed(segments))
 
     def query_tags(self, method, arg):
+        arg = arg.encode('utf-8')
         batch_size = 100
         batch_index = 0
         while True:
@@ -172,7 +179,7 @@ class QueryDB(object):
                 batch = self.cursor.execute(
                     'SELECT DISTINCT tag FROM tags WHERE tag LIKE :arg ORDER BY tag ASC LIMIT :offset, :size',
                     {
-                        'arg': arg + '%',
+                        'arg': arg + b'%',
                         'offset': batch_index,
                         'size': batch_size,
                     },
@@ -181,7 +188,7 @@ class QueryDB(object):
                 batch = self.cursor.execute(
                     'SELECT DISTINCT tag FROM tags WHERE tag LIKE :arg ORDER BY tag ASC LIMIT :offset, :size',
                     {
-                        'arg': '%' + arg + '%',
+                        'arg': b'%' + arg + b'%',
                         'offset': batch_index,
                         'size': batch_size,
                     },

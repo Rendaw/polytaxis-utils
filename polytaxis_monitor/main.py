@@ -48,12 +48,12 @@ def split_abs_path(path):
     out.extend(extend)
     return out
 
-def get_fid_and_tags(parent, segment):
+def get_fid_and_raw_tags(parent, segment):
     got = cursor.execute(
         'SELECT id, tags FROM files WHERE parent is :parent AND segment = :segment LIMIT 1', 
         {
             'parent': parent, 
-            'segment': segment,
+            'segment': segment.encode('utf-8'),
         },
     ).fetchone()
     if got is None:
@@ -65,7 +65,7 @@ def get_fid(parent, segment):
         'SELECT id FROM files WHERE parent is :parent AND segment = :segment LIMIT 1', 
         {
             'parent': parent, 
-            'segment': segment,
+            'segment': segment.encode('utf-8'),
         },
     ).fetchone()
     if got is None:
@@ -83,7 +83,7 @@ def create_file(filename, tags):
                 'INSERT INTO files (id, parent, segment, tags) VALUES (NULL, :parent, :segment, :tags)',
                 {
                     'parent': fid,
-                    'segment': split,
+                    'segment': split.encode('utf-8'),
                     'tags': polytaxis.encode_tags(tags) if index == last_index else None,
                 },
             )
@@ -114,7 +114,7 @@ def add_tags(fid, tags):
     if not tags:
         cursor.execute('INSERT INTO tags (tag, file) VALUES (:tag, :fid)',
             {
-                'tag': 'untagged',
+                'tag': 'untagged'.encode('utf-8'),
                 'fid': fid,
             }
         )
@@ -143,7 +143,7 @@ def process(filename):
         fid = get_fid(fid, split)
         if fid is None:
             break
-    fid, old_tags = get_fid_and_tags(fid, last_split)
+    fid, old_tags = get_fid_and_raw_tags(fid, last_split)
     if tags is None and fid is None:
         pass
     elif tags is not None and fid is None:
@@ -180,7 +180,7 @@ def move_file(source, dest):
         'UPDATE files SET parent = :parent, segment = :segment WHERE id = :id',
         {
             'parent': dfid,
-            'segment': new_name,
+            'segment': new_name.encode('utf-8'),
             'id': sfid,
         },
     )

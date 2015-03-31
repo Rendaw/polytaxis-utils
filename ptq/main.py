@@ -42,7 +42,7 @@ def main():
     parser.add_argument(
         '-u',
         '--unwrap',
-        help='Provide polytaxis-unwraped filename results. ptunwrapd must be running.',
+        help='Provide polytaxis-unwrap\'ed filename results. polytaxis-unwrap must be running.',
         action='store_true',
     )
     args = parser.parse_args()
@@ -73,7 +73,7 @@ def main():
     else:
         includes, excludes, sort, columns = polytaxis_monitor.common.parse_query(args.args)
         rows = [row for row in limit(args.limit, db.query(includes, excludes))]
-        polytaxis_monitor.common.sort(sort, rows)
+        rows = polytaxis_monitor.common.sort(sort, rows)
         for row in rows:
             path = db.query_path(row['fid'])
             if len(path) >= 2 and path[1] == ':':
