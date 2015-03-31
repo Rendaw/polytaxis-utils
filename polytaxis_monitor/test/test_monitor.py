@@ -113,7 +113,7 @@ class TestQueryDB(unittest.TestCase):
 
     def test_query_include(self):
         self.assertCountEqual(
-            list(self.query.query([('red', None)], [])),
+            list(self.query.query(['red'], [])),
             [
                 {'fid': self.fids[0], 'segment': 'gamma.vob', 'tags': self.tag_sets[0]},
                 {'fid': self.fids[1], 'segment': 'loog.txt', 'tags': self.tag_sets[1]},
@@ -122,7 +122,7 @@ class TestQueryDB(unittest.TestCase):
     
     def test_query_exclude(self):
         self.assertCountEqual(
-            list(self.query.query([], [('juicy', None)])),
+            list(self.query.query([], ['juicy'])),
             [
                 {'fid': self.fids[1], 'segment': 'loog.txt', 'tags': self.tag_sets[1]},
                 {'fid': self.fids[2], 'segment': 'noxx', 'tags': self.tag_sets[2]},
@@ -131,7 +131,7 @@ class TestQueryDB(unittest.TestCase):
     
     def test_query_include_exclude(self):
         self.assertCountEqual(
-            list(self.query.query([('seven', None), ('red', None)], [('date', '99')])),
+            list(self.query.query(['seven', 'red'], ['date=99'])),
             [
                 {'fid': self.fids[1], 'segment': 'loog.txt', 'tags': self.tag_sets[1]},
             ],
@@ -171,17 +171,17 @@ class TestCommon(unittest.TestCase):
                 'sort-:key3',
                 'sort+:key3',
                 'col:key4',
-                '-key5',
+                '^key5',
             ])
         )
         self.assertCountEqual(
             includes, 
             [
-                ('key1', None),
-                ('key2', 'val2'),
+                'key1',
+                'key2=val2',
             ]
         )
-        self.assertCountEqual(excludes, [('key5', None)])
+        self.assertCountEqual(excludes, ['key5'])
         self.assertEqual(sort, [('desc', 'key3'), ('asc', 'key3')])
         self.assertEqual(columns, ['key3', 'key4'])
 

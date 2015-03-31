@@ -64,11 +64,11 @@ def parse_query(args):
                 columns.append(sort_desc)
             sort.append(('desc', sort_desc))
             continue
-        exclude = _shifttext(item, '-')
+        exclude = _shifttext(item, '^')
         if exclude:
-            excludes.add(polytaxis.decode_tag(exclude.encode('utf-8')))
+            excludes.add(exclude)
             continue
-        includes.add(polytaxis.decode_tag(item.encode('utf-8')))
+        includes.add(item)
     return includes, excludes, sort, columns
 
 class QueryDB(object):
@@ -76,43 +76,45 @@ class QueryDB(object):
         conn, self.cursor = open_db()
 
     def query(self, include, exclude):
-        # Assemble first several includes/excludes into a sql query
-        primary_tags = []
-        primary_include = []
-        primary_exclude = []
-        primary_args = {
+        # Assemble includes/excludes into a sql query
+        query_include = []
+        query_exclude = []
+        query_args = {
         }
-        primary_limit = 3
-        primary_index = [0]
+        query_index = [0]
 
-        def build_select(dest, key, value):
-            dest.append(
-                'SELECT file FROM tags WHERE tag = :tag{}'.format(
-                    primary_index[0]
+        def build_select(dest, item):
+            if '%' in item:
+                dest.append(
+                    'SELECT file FROM tags WHERE tag LIKE :tag{}'.format(
+                        query_index[0]
+                    )
                 )
-            )
-            primary_args['tag{}'.format(primary_index[0])] = (
-                polytaxis.encode_tag(key, value).decode('utf-8')
-            )
-            primary_index[0] += 1
-            return primary_index[0] < primary_limit
+            else:
+                dest.append(
+                    'SELECT file FROM tags WHERE tag = :tag{}'.format(
+                        query_index[0]
+                    )
+                )
+            query_args['tag{}'.format(query_index[0])] = item
+            query_index[0] += 1
 
-        for key, value in include:
-            build_select(primary_include, key, value)
+        for item in include:
+            build_select(query_include, item)
 
-        if len(primary_include) == 0:
-            primary_include.append('SELECT file FROM tags')
+        if len(query_include) == 0:
+            query_include.append('SELECT file FROM tags')
 
-        for key, value in exclude:
-            build_select(primary_exclude, key, value)
+        for item in exclude:
+            build_select(query_exclude, item)
 
-        if primary_index[0] == 0:
-            primary_select = 'SELECT id FROM files WHERE tags is not NULL LIMIT :offset, :size'
+        if query_index[0] == 0:
+            query_select = 'SELECT id FROM files WHERE tags is not NULL LIMIT :offset, :size'
         else:
-            if primary_include:
-                primary_exclude.insert(0, ' INTERSECT '.join(primary_include))
-            primary_select = (
-                ' EXCEPT '.join(primary_exclude) + ' LIMIT :offset, :size'
+            if query_include:
+                query_exclude.insert(0, ' INTERSECT '.join(query_include))
+            query_select = (
+                ' EXCEPT '.join(query_exclude) + ' LIMIT :offset, :size'
             )
         
         # Perform the query in batches, and manually apply the rest of the
@@ -120,10 +122,10 @@ class QueryDB(object):
         batch_size = 100
         batch_index = 0
         while True:
-            primary_args['offset'] = batch_index
-            primary_args['size'] = batch_size
+            query_args['offset'] = batch_index
+            query_args['size'] = batch_size
             batch = set(
-                self.cursor.execute(primary_select, primary_args).fetchall()
+                self.cursor.execute(query_select, query_args).fetchall()
             )
             batch_index += 1
             for (fid,) in batch:
@@ -134,22 +136,6 @@ class QueryDB(object):
                     },
                 ).fetchone()
                 tags = polytaxis.decode_tags(tags.encode('utf-8'))
-                def manual_filter():
-                    for key, value in include:
-                        found_values = tags.get(key)
-                        if found_values is None:
-                            return False
-                        if not value in found_values:
-                            return False
-                    for key, value in exclude:
-                        found_values = tags.get(key)
-                        if found_values is None:
-                            continue
-                        if value in found_values:
-                            return False
-                    return True
-                if not manual_filter():
-                    continue
                 yield {
                     'fid': fid,
                     'segment': segment,

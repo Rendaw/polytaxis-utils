@@ -25,10 +25,12 @@ For usage, run `polytaxis-monitor -h`.
 For information on flags and other arguments, run `ptq -h`.
 
 #### File Queries
-File queries are written as a list of terms. A term can be a tag (`tag` or 
-`tag=value`, matched in full), an exclusion (`-tag` or `-tag=value`), or a 
+File queries are written as a list of terms. A term can be an inclusion (`tag` or 
+`tag=value`, matched in full), an exclusion (`^tag` or `^tag=value`), or a 
 special term. Terms should be escaped if there are non-syntax special 
 characters (equal signs, spaces, newlines, etc.) in the text.
+
+Inclusions and exclusions can also incorporate `%`, which acts as a wildcard.
 
 Special terms:
 ```
