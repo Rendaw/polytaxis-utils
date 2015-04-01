@@ -3,6 +3,7 @@ import ntpath
 import argparse
 import signal
 import time
+import datetime
 
 import watchdog
 import watchdog.events
@@ -19,6 +20,11 @@ def signal_handler(signal, frame):
     global die
     die = True
 signal.signal(signal.SIGINT, signal_handler)
+
+nextcommit = None
+commit_wait = datetime.timedelta(minutes=5)
+
+sleep_time = 30
 
 def os_path_split_asunder(path, windows):
     # Thanks http://stackoverflow.com/questions/4579908/cross-platform-splitting-of-path-in-python/4580931#4580931
@@ -58,7 +64,7 @@ def get_fid_and_raw_tags(parent, segment):
     ).fetchone()
     if got is None:
         return None, None
-    return got[0], got[1].encode('utf-8')
+    return got[0], None if got[1] is None else got[1].encode('utf-8')
 
 def get_fid(parent, segment):
     got = cursor.execute(
@@ -179,21 +185,30 @@ def move_file(source, dest):
     )
 
 class MonitorHandler(watchdog.events.FileSystemEventHandler):
+    def _wait_or_commit(self):
+        global nextcommit
+        now = datetime.datetime.now()
+        if nextcommit is not None and now >= nextcommit:
+            conn.commit()
+            nextcommit = None
+        else:
+            nextcommit = now + commit_wait
+
     def on_created(self, event):
         process(event.src_path)
-        conn.commit()
+        self._wait_or_commit()
 
     def on_deleted(self, event):
         process(event.src_path)
-        conn.commit()
+        self._wait_or_commit()
 
     def on_modified(self, event):
         process(event.src_path)
-        conn.commit()
+        self._wait_or_commit()
 
     def on_moved(self, event):
         move_file(event.src_path, event.dest_path)
-        conn.commit()
+        self._wait_or_commit()
 
 def main():
     parser = argparse.ArgumentParser(
@@ -267,17 +282,26 @@ def main():
 
     conn.commit()
 
+    tmpdir = '/dev/shm/polytaxis-monitor-{}/'.format(os.getpid())
+    os.makedirs(tmpdir, exist_ok=True)
+
     observer = watchdog.observers.Observer()
     handler = MonitorHandler()
     for path in args.directory:
         print('Starting watch on [{}]'.format(path))
         observer.schedule(handler, path, recursive=True)
+    observer.schedule(handler, tmpdir, recursive=False)
     observer.start()
     try:
         while not die:
-            time.sleep(1)
+            time.sleep(sleep_time)
+            if nextcommit and datetime.datetime.now() > nextcommit:
+                with open(os.path.join(tmpdir, 'jostle'), 'w') as file:
+                    file.write(repr(nextcommit))
     except KeyboardInterrupt:
-        pass
+        print('Received keyboard interrupt, please wait {} seconds'.format(
+            sleep_time,
+        ))
     observer.stop()
     observer.join()
 
