@@ -2,6 +2,7 @@ import errno
 import os
 import sqlite3
 import functools
+import random
 
 import appdirs
 import polytaxis
@@ -186,6 +187,7 @@ class QueryDB(object):
 
 _natkey = natsort.natsort_keygen()
 def sort(sort_info, rows):
+    random.shuffle(rows)
     def cmp(x, y):
         for direction, column in sort_info:
             x_val = _natkey(x['tags'][column])
