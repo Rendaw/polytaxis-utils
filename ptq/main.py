@@ -1,6 +1,7 @@
 import argparse
 import sys
 import os
+import signal
 
 import appdirs
 
@@ -15,6 +16,8 @@ def limit(maxcount, generator):
         yield x
 
 def main():
+    signal.signal(signal.SIGPIPE, signal.SIG_DFL)
+
     parser = argparse.ArgumentParser(
         description='Query files and tags in the polytaxis_monitor database.',
     )
