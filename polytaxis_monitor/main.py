@@ -22,9 +22,9 @@ def signal_handler(signal, frame):
 signal.signal(signal.SIGINT, signal_handler)
 
 nextcommit = None
-commit_wait = datetime.timedelta(minutes=5)
+commit_wait = datetime.timedelta(seconds=5)
 
-sleep_time = 30
+sleep_time = 5
 
 def os_path_split_asunder(path, windows):
     # Thanks http://stackoverflow.com/questions/4579908/cross-platform-splitting-of-path-in-python/4580931#4580931
@@ -131,6 +131,8 @@ def remove_tags(fid):
 
 def process(filename):
     filename = os.path.abspath(filename)
+    if verbose:
+        print('Scanning file [{}]'.format(filename))
     is_file = os.path.isfile(filename)
     tags = polytaxis.get_tags(filename) if is_file else None
     if not tags and tags is not None:
@@ -276,8 +278,6 @@ def main():
             for base, dirnames, filenames in os.walk(path):
                 for filename in filenames:
                     abs_filename = os.path.join(base, filename)
-                    if verbose:
-                        print('Scanning file [{}]'.format(abs_filename))
                     process(abs_filename)
 
     conn.commit()
