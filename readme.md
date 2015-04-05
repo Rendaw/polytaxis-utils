@@ -16,6 +16,8 @@ pip install git+https://github.com/Rendaw/polytaxis-utils
 
 Files with no tags will be categorized with the tag 'untagged'.
 
+**note** If you want to monitor a mount, make sure it's mounted before you start the monitor or nothing will be detected.
+
 For usage, run `polytaxis-monitor -h`.
 
 ## ptq
