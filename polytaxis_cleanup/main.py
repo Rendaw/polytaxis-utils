@@ -2,6 +2,7 @@ import argparse
 import os
 import shutil
 import sys
+import appdirs
 
 import polytaxis
 
@@ -10,15 +11,20 @@ def main():
         description='Perform common cleanup on polytaxis tags.',
     )
     subparsers = parser.add_subparsers(help='Cleanup actions', dest='action')
-    parser_lowercase = subparsers.add_parser(
+    subparsers_list = []
+    def add_sub(*pargs, **kwargs):
+        out = subparsers.add_parser(*pargs, **kwargs)
+        subparsers_list.append(out)
+        return out
+    parser_lowercase = add_sub(
         'lowercase',
         description='Convert tag keys to lowercase.',
     )
-    parser_uppercase = subparsers.add_parser(
+    parser_uppercase = add_sub(
         'uppercase',
         description='Convert tag keys to uppercase.',
     )
-    parser_replace_key = subparsers.add_parser(
+    parser_replace_key = add_sub(
         'replacekey',
         description='Replace keys.',
     )
@@ -30,7 +36,7 @@ def main():
         'replacement',
         help='Replacement',
     )
-    parser_extract = subparsers.add_parser(
+    parser_extract = add_sub(
         'extract',
         description='Export polytaxis header-less versions of files.',
     )
@@ -38,23 +44,24 @@ def main():
         'directory',
         help='Expored files will be placed in this directory.',
     )
-    parser.add_argument(
-        'files',
-        help='Files to convert.',
-        nargs='+',
-    )
-    parser.add_argument(
-        '-n',
-        '--dryrun',
-        help='Print result tags but don\'t save them.',
-        action='store_true',
-    )
-    parser.add_argument(
-        '-v',
-        '--verbose',
-        help='Display verbose cleanup information.',
-        action='store_true',
-    )
+    for sub in subparsers_list:
+        sub.add_argument(
+            'files',
+            help='Files to convert.',
+            nargs='+',
+        )
+        sub.add_argument(
+            '-n',
+            '--dryrun',
+            help='Print result tags but don\'t save them.',
+            action='store_true',
+        )
+        sub.add_argument(
+            '-v',
+            '--verbose',
+            help='Display verbose cleanup information.',
+            action='store_true',
+        )
     args = parser.parse_args()
 
     if args.action == 'extract':
@@ -117,9 +124,11 @@ def main():
             new_name = filename
             if new_name.endswith('.p'):
                 new_name = new_name[:-2]
+            if not args.directory.endswith(os.path.sep):
+                args.directory += os.path.sep
             from_path = os.path.join(
                 unwrap_root,
-                os.path.abspath(args.path)[1:],
+                os.path.abspath(filename)[1:],
             )
             to_path = os.path.join(args.directory, new_name)
             if args.dryrun or args.verbose:
