@@ -199,4 +199,34 @@ class TestCommon(unittest.TestCase):
                 {'fid': 2, 'segment': '2', 'tags': {'1': 'b', '2': 'a'}},
             ],
         )
+    
+    def test_sort_missing(self):
+        rows = [
+            {'fid': 0, 'segment': '0', 'tags': {'2': 'a'}},
+            {'fid': 1, 'segment': '1', 'tags': {'2': 'b'}},
+            {'fid': 2, 'segment': '2', 'tags': {'1': 'b', '2': 'a'}},
+        ]
+        self.assertEqual(
+            polytaxis_monitor.common.sort([('asc', '1'), ('desc', '2')], rows),
+            [
+                {'fid': 1, 'segment': '1', 'tags': {'2': 'b'}},
+                {'fid': 0, 'segment': '0', 'tags': {'2': 'a'}},
+                {'fid': 2, 'segment': '2', 'tags': {'1': 'b', '2': 'a'}},
+            ],
+        )
+
+    def test_sort_nones(self):
+        rows = [
+            {'fid': 0, 'segment': '0', 'tags': {'1': None, '2': 'a'}},
+            {'fid': 1, 'segment': '1', 'tags': {'1': None, '2': 'b'}},
+            {'fid': 2, 'segment': '2', 'tags': {'1': 'b', '2': 'a'}},
+        ]
+        self.assertEqual(
+            polytaxis_monitor.common.sort([('asc', '1'), ('desc', '2')], rows),
+            [
+                {'fid': 1, 'segment': '1', 'tags': {'1': None, '2': 'b'}},
+                {'fid': 0, 'segment': '0', 'tags': {'1': None, '2': 'a'}},
+                {'fid': 2, 'segment': '2', 'tags': {'1': 'b', '2': 'a'}},
+            ],
+        )
 
