@@ -38,6 +38,7 @@ Special terms:
 ```
 sort+:COLUMN    Sort output, ascending, by COLUMN.
 sort-:COLUMN    Sort output, descending, by COLUMN.
+sort?:COLUMN    Sort output, randomly, by COLUMN.
 col:COLUMN      Include COLUMN in the output. If no columns are specified,
                 show the filename.
 ```

@@ -229,4 +229,3 @@ class TestCommon(unittest.TestCase):
                 {'fid': 2, 'segment': '2', 'tags': {'1': {'b'}, '2': {'a'}}},
             ],
         )
-

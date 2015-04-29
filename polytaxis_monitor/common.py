@@ -3,6 +3,7 @@ import os
 import sqlite3
 import functools
 import random
+import hashlib
 
 import appdirs
 import polytaxis
@@ -64,6 +65,12 @@ def parse_query(args):
             if sort_desc not in columns:
                 columns.append(sort_desc)
             sort.append(('desc', sort_desc))
+            continue
+        sort_rand = _shifttext(item, 'sort?:')
+        if sort_rand:
+            if sort_rand not in columns:
+                columns.append(sort_rand)
+            sort.append(('rand', sort_rand))
             continue
         exclude = _shifttext(item, '^')
         if exclude:
@@ -187,15 +194,20 @@ class QueryDB(object):
 
 _natkey = natsort.natsort_keygen()
 def sort(sort_info, rows):
+    salt = '{:03d}'.format(random.randint(0, 999)).encode('utf-8')
     random.shuffle(rows)
     def cmp(x, y):
         for direction, column in sort_info:
             x_val = x['tags'].get(column)
             x_val = next(iter(x_val)) if x_val is not None else ''
-            x_val = _natkey(x_val)
             y_val = y['tags'].get(column)
             y_val = next(iter(y_val)) if y_val is not None else ''
-            y_val = _natkey(y_val)
+            if direction == 'rand':
+                x_val = hashlib.md5(x_val.encode('utf-8') + salt).digest()
+                y_val = hashlib.md5(y_val.encode('utf-8') + salt).digest()
+            else:
+                x_val = _natkey(x_val)
+                y_val = _natkey(y_val)
             less = 0
             if y_val is None:
                 less = 1
