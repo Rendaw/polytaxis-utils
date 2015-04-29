@@ -54,6 +54,12 @@ def main():
         help='Separate filenames with null characters (0x00) rather than newlines.',
         action='store_true',
     )
+    parser.add_argument(
+        '-c',
+        '--columns',
+        help='Display columns rather than file paths.',
+        action='store_true',
+    )
     args = parser.parse_args()
 
     if args.unwrap:
@@ -84,17 +90,28 @@ def main():
         rows = [row for row in limit(args.limit, db.query(includes, excludes))]
         rows = polytaxis_monitor.common.sort(sort, rows)
         for row in rows:
-            path = db.query_path(row['fid'])
-            if len(path) >= 2 and path[1] == ':':
-                path = path[2:]
-            if args.unwrap:
-                path = path[1:]
-                path = os.path.join(unwrap_root, path)
-            if args.print0:
-                sys.stdout.write(path)
-                sys.stdout.write('\x00')
+            if args.columns:
+                text = '\t'.join(
+                    ','.join(list(row['tags'].get(column, []))) 
+                    for column in columns
+                )
+                if args.print0:
+                    sys.stdout.write(path)
+                    sys.stdout.write('\x00')
+                else:
+                    print(text)
             else:
-                print(path)
+                path = db.query_path(row['fid'])
+                if len(path) >= 2 and path[1] == ':':
+                    path = path[2:]
+                if args.unwrap:
+                    path = path[1:]
+                    path = os.path.join(unwrap_root, path)
+                if args.print0:
+                    sys.stdout.write(path)
+                    sys.stdout.write('\x00')
+                else:
+                    print(path)
     if not args.print0 and len(rows) == args.limit:
         sys.stderr.write('Stoped at {} results.\n'.format(args.limit))
 
