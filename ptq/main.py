@@ -86,18 +86,16 @@ def main():
         for row in rows:
             print(row)
     else:
-        includes, excludes, sort, columns = (
+        includes, excludes, filters, sort, columns = (
             polytaxis_monitor.common.parse_query(args.args)
         )
-        rows = [
-            row for row in limit(
-                args.limit, 
-                polytaxis_monitor.common.filter(
-                    filters,
-                    db.query(includes, excludes),
-                ),
-            )
-        ]
+        rows = list(limit(
+            args.limit, 
+            polytaxis_monitor.common.filter(
+                filters,
+                db.query(includes, excludes),
+            ),
+        ))
         rows = polytaxis_monitor.common.sort(sort, rows)
         for row in rows:
             if args.columns:
