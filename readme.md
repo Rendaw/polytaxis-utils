@@ -36,6 +36,10 @@ Inclusions and exclusions can also incorporate `%`, which acts as a wildcard.
 
 Special terms:
 ```
+COLUMN>VALUE    Only output rows where the value of COLUMN > VALUE.
+COLUMN>=VALUE   Only output rows where the value of COLUMN >= VALUE.
+COLUMN<VALUE    Only output rows where the value of COLUMN < VALUE.
+COLUMN<=VALUE   Only output rows where the value of COLUMN <= VALUE.
 sort+:COLUMN    Sort output, ascending, by COLUMN.
 sort-:COLUMN    Sort output, descending, by COLUMN.
 sort?:COLUMN    Sort output, randomly, by COLUMN.

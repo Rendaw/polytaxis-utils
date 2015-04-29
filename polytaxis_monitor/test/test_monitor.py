@@ -1,5 +1,6 @@
 import unittest
 import sqlite3
+import operator
 
 from mock import patch
 
@@ -164,7 +165,7 @@ class TestQueryDB(unittest.TestCase):
 
 class TestCommon(unittest.TestCase):
     def test_parse_args(self):
-        includes, excludes, sort, columns = (
+        includes, excludes, filters, sort, columns = (
             polytaxis_monitor.common.parse_query([
                 'key1',
                 'key2=val2',
@@ -172,6 +173,11 @@ class TestCommon(unittest.TestCase):
                 'sort+:key3',
                 'col:key4',
                 '^key5',
+                'key6<10',
+                'key7<=11',
+                'key8>12',
+                'key9>=13',
+                'key10=frog>prince',
             ])
         )
         self.assertCountEqual(
@@ -179,11 +185,24 @@ class TestCommon(unittest.TestCase):
             [
                 'key1',
                 'key2=val2',
+                'key10=frog>prince',
             ]
         )
         self.assertCountEqual(excludes, ['key5'])
+        self.assertCountEqual(
+            filters, 
+            [
+                (operator.lt, 'key6', '10'),
+                (operator.le, 'key7', '11'),
+                (operator.gt, 'key8', '12'),
+                (operator.ge, 'key9', '13'),
+            ]
+        )
         self.assertEqual(sort, [('desc', 'key3'), ('asc', 'key3')])
-        self.assertEqual(columns, ['key3', 'key4'])
+        self.assertEqual(
+            columns, 
+            ['key3', 'key4', 'key6', 'key7', 'key8', 'key9'],
+        )
 
     def test_sort(self):
         rows = [
@@ -227,5 +246,22 @@ class TestCommon(unittest.TestCase):
                 {'fid': 1, 'segment': '1', 'tags': {'1': None, '2': {'b'}}},
                 {'fid': 0, 'segment': '0', 'tags': {'1': None, '2': {'a'}}},
                 {'fid': 2, 'segment': '2', 'tags': {'1': {'b'}, '2': {'a'}}},
+            ],
+        )
+
+    def test_filter(self):
+        rows = [
+            {'fid': 0, 'segment': '0', 'tags': {'a': {'1'}}},
+            {'fid': 1, 'segment': '1', 'tags': {'a': {'2'}}},
+            {'fid': 2, 'segment': '2', 'tags': {'a': {'3'}}},
+        ]
+        self.assertEqual(
+            list(polytaxis_monitor.common.filter(
+                [(operator.lt, 'a', '3')],
+                rows, 
+            )),
+            [
+                {'fid': 0, 'segment': '0', 'tags': {'a': {'1'}}},
+                {'fid': 1, 'segment': '1', 'tags': {'a': {'2'}}},
             ],
         )

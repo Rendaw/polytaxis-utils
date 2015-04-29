@@ -4,12 +4,15 @@ import sqlite3
 import functools
 import random
 import hashlib
+import operator
 
 import appdirs
 import polytaxis
 import natsort
 
 verbose = False
+
+_natkey = natsort.natsort_keygen()
 
 def mkdir_p(path):
     try:
@@ -47,6 +50,7 @@ def _shifttext(source, match):
 def parse_query(args):
     includes = set()
     excludes = set()
+    filters = set()
     columns = []
     sort = []
     for item in args:
@@ -76,8 +80,34 @@ def parse_query(args):
         if exclude:
             excludes.add(exclude)
             continue
+        ritem = item[::-1]
+        equal_at = ritem.find('=')
+        if -1 < ritem.find('=>') >= equal_at:
+            splits = item.split('>=', 2)
+            filters.add((operator.ge, splits[0], splits[1]))
+            if splits[0] not in columns:
+                columns.append(splits[0])
+            continue
+        if -1 < ritem.find('>') >= equal_at:
+            splits = item.split('>', 2)
+            filters.add((operator.gt, splits[0], splits[1]))
+            if splits[0] not in columns:
+                columns.append(splits[0])
+            continue
+        if -1 < ritem.find('=<') >= equal_at:
+            splits = item.split('<=', 2)
+            filters.add((operator.le, splits[0], splits[1]))
+            if splits[0] not in columns:
+                columns.append(splits[0])
+            continue
+        if -1 < ritem.find('<') >= equal_at:
+            splits = item.split('<', 2)
+            filters.add((operator.lt, splits[0], splits[1]))
+            if splits[0] not in columns:
+                columns.append(splits[0])
+            continue
         includes.add(item)
-    return includes, excludes, sort, columns
+    return includes, excludes, filters, sort, columns
 
 class QueryDB(object):
     def __init__(self):
@@ -192,16 +222,32 @@ class QueryDB(object):
             if len(batch) < batch_size:
                 break
 
-_natkey = natsort.natsort_keygen()
+def _get(row, column):
+    row_val = row['tags'].get(column)
+    return next(iter(row_val)) if row_val is not None else ''
+
+def filter(filters, rows):
+    filters = [
+        (comp, key, _natkey(val)) for comp, key, val in filters
+    ]
+    for row in rows:
+        filtered = False
+        for comp, key, val in filters:
+            if not comp(_natkey(_get(row, key)), val):
+                return False
+                filtered = True
+                break
+        if filtered:
+            continue
+        yield row
+
 def sort(sort_info, rows):
     salt = '{:03d}'.format(random.randint(0, 999)).encode('utf-8')
     random.shuffle(rows)
     def cmp(x, y):
         for direction, column in sort_info:
-            x_val = x['tags'].get(column)
-            x_val = next(iter(x_val)) if x_val is not None else ''
-            y_val = y['tags'].get(column)
-            y_val = next(iter(y_val)) if y_val is not None else ''
+            x_val = _get(x, column)
+            y_val = _get(y, column)
             if direction == 'rand':
                 x_val = hashlib.md5(x_val.encode('utf-8') + salt).digest()
                 y_val = hashlib.md5(y_val.encode('utf-8') + salt).digest()
