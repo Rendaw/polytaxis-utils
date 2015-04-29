@@ -234,7 +234,6 @@ def filter(filters, rows):
         filtered = False
         for comp, key, val in filters:
             if not comp(_natkey(_get(row, key)), val):
-                return False
                 filtered = True
                 break
         if filtered:

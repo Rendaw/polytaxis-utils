@@ -97,6 +97,15 @@ def create_file(filename, tags):
         fid = next_fid
     return fid
 
+def update_file(fid, tags):
+    cursor.execute(
+        'UPDATE files SET tags = :tags WHERE id = :fid',
+        {
+            'fid': fid,
+            'tags': polytaxis.encode_tags(tags).decode('utf-8'),
+        },
+    )
+
 def delete_file(fid):
     parent = True
     while fid is not None:
@@ -153,6 +162,7 @@ def process(filename):
         fid = create_file(filename, tags)
         add_tags(fid, tags)
     elif tags is not None and fid is not None:
+        update_file(fid, tags)
         old_tags = polytaxis.decode_tags(old_raw_tags)
         if tags != old_tags:
             remove_tags(fid)
