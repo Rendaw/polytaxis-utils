@@ -190,8 +190,14 @@ def sort(sort_info, rows):
     random.shuffle(rows)
     def cmp(x, y):
         for direction, column in sort_info:
-            x_val = _natkey(x['tags'].get(column, None))
-            y_val = _natkey(y['tags'].get(column, None))
+            pre_x_val = x['tags'].get(column)
+            if pre_x_val is not None:
+                pre_x_val = next(iter(pre_x_val))
+            pre_y_val = y['tags'].get(column)
+            if pre_y_val is not None:
+                pre_y_val = next(iter(pre_y_val))
+            x_val = _natkey(pre_x_val)
+            y_val = _natkey(pre_y_val)
             less = 0
             if y_val is None:
                 less = 1

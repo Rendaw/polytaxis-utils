@@ -100,12 +100,14 @@ def create_file(filename, tags):
 def delete_file(fid):
     parent = True
     while fid is not None:
-        (parent,) = cursor.execute(
+        parent = cursor.execute(
             'SELECT parent FROM files WHERE id is :id',
             {
                 'id': fid,
             }
         ).fetchone()
+        if parent is not None:
+            (parent,) = parent
         cursor.execute('DELETE FROM files WHERE id is :id', {'id': fid})
         if cursor.execute(
                 'SELECT count(1) FROM files WHERE parent is :id',
