@@ -84,24 +84,28 @@ def parse_query(args):
         equal_at = ritem.find('=')
         if -1 < ritem.find('=>') >= equal_at:
             splits = item.split('>=', 2)
+            includes.add('{}=%'.format(splits[0]))
             filters.add((operator.ge, splits[0], splits[1]))
             if splits[0] not in columns:
                 columns.append(splits[0])
             continue
         if -1 < ritem.find('>') >= equal_at:
             splits = item.split('>', 2)
+            includes.add('{}=%'.format(splits[0]))
             filters.add((operator.gt, splits[0], splits[1]))
             if splits[0] not in columns:
                 columns.append(splits[0])
             continue
         if -1 < ritem.find('=<') >= equal_at:
             splits = item.split('<=', 2)
+            includes.add('{}=%'.format(splits[0]))
             filters.add((operator.le, splits[0], splits[1]))
             if splits[0] not in columns:
                 columns.append(splits[0])
             continue
         if -1 < ritem.find('<') >= equal_at:
             splits = item.split('<', 2)
+            includes.add('{}=%'.format(splits[0]))
             filters.add((operator.lt, splits[0], splits[1]))
             if splits[0] not in columns:
                 columns.append(splits[0])

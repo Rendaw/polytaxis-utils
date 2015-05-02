@@ -185,6 +185,10 @@ class TestCommon(unittest.TestCase):
             [
                 'key1',
                 'key2=val2',
+                'key6=%',
+                'key7=%',
+                'key8=%',
+                'key9=%',
                 'key10=frog>prince',
             ]
         )
