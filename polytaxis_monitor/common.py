@@ -117,7 +117,26 @@ class QueryDB(object):
     def __init__(self):
         conn, self.cursor = open_db()
 
-    def query(self, include, exclude):
+    def clear_cache(self):
+        self._query_path_element.cache_clear()
+
+    @functools.lru_cache()
+    def _query_path_element(self, fid):
+        return self.cursor.execute(
+            'SELECT parent, segment FROM files WHERE id = :id LIMIT 1',
+            {
+                'id': fid,
+            },
+        ).fetchone()
+
+    def query_path(self, fid):
+        segments = []
+        while fid is not None:
+            fid, segment = self._query_path_element(fid)
+            segments.append(segment)
+        return os.path.join(*reversed(segments))
+
+    def query(self, include, exclude, add_path=False):
         # Assemble includes/excludes into a sql query
         query_include = []
         query_exclude = []
@@ -178,25 +197,16 @@ class QueryDB(object):
                     },
                 ).fetchone()
                 tags = polytaxis.decode_tags(tags.encode('utf-8'))
-                yield {
+                out = {
                     'fid': fid,
                     'segment': segment,
                     'tags': tags,
                 }
+                if add_path:
+                    out['tags']['path'] = {self.query_path(fid)}
+                yield out
             if len(batch) < batch_size:
                 break
-
-    def query_path(self, fid):
-        segments = []
-        while fid is not None:
-            fid, segment = self.cursor.execute(
-                'SELECT parent, segment FROM files WHERE id = :id LIMIT 1',
-                {
-                    'id': fid,
-                },
-            ).fetchone()
-            segments.append(segment)
-        return os.path.join(*reversed(segments))
 
     def query_tags(self, method, arg):
         batch_size = 100
