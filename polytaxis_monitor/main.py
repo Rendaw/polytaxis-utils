@@ -27,6 +27,8 @@ commit_wait = datetime.timedelta(seconds=5)
 
 sleep_time = 5
 
+log = print
+
 def os_path_split_asunder(path, windows):
     # Thanks http://stackoverflow.com/questions/4579908/cross-platform-splitting-of-path-in-python/4580931#4580931
     # Mod for windows paths on linux
@@ -80,6 +82,8 @@ def get_fid(parent, segment):
     return got[0]
 
 def create_file(filename, tags):
+    if super_verbose:
+        log('DEBUG: Created: [{}]'.format(filename))
     fid = None
     splits = split_abs_path(filename)
     last_index = len(splits) - 1
@@ -108,7 +112,6 @@ def update_file(fid, tags):
     )
 
 def delete_file(fid):
-    parent = True
     while fid is not None:
         parent = cursor.execute(
             'SELECT parent FROM files WHERE id is :id',
@@ -122,7 +125,7 @@ def delete_file(fid):
         if cursor.execute(
                 'SELECT count(1) FROM files WHERE parent is :id',
                 {
-                    'id': fid,
+                    'id': parent,
                 },
                 ).fetchone()[0] > 0:
             break
@@ -144,7 +147,7 @@ def remove_tags(fid):
 def process(filename):
     filename = os.path.abspath(filename)
     if verbose:
-        print('Scanning file [{}]'.format(filename))
+        log('Scanning file [{}]'.format(filename))
     is_file = os.path.isfile(filename)
     tags = polytaxis.get_tags(filename) if is_file else None
     if not tags and tags is not None:
@@ -159,18 +162,22 @@ def process(filename):
     fid, old_raw_tags = get_fid_and_raw_tags(fid, last_split)
     if tags is None and fid is None:
         if super_verbose:
-            print('DEBUG: Not a file; skipping {}'.format(filename))
+            log('DEBUG: Not a file; skipping [{}]'.format(filename))
         pass
     elif tags is not None and fid is None:
         fid = create_file(filename, tags)
         add_tags(fid, tags)
     elif tags is not None and fid is not None:
+        if super_verbose:
+            log('DEBUG: Updating: [{}]'.format(filename))
         update_file(fid, tags)
         old_tags = polytaxis.decode_tags(old_raw_tags)
         if tags != old_tags:
             remove_tags(fid)
             add_tags(fid, tags)
     elif is_file and tags is None and fid is not None:
+        if super_verbose:
+            log('DEBUG: Deleted: [{}]'.format(filename))
         remove_tags(fid)
         delete_file(fid)
 
@@ -195,10 +202,10 @@ def move_file(source, dest):
         dfid = get_fid(dparent, split)
         if dfid is None:
             if super_verbose:
-                print('DEBUG: No dest fid, skipping move {} -> {}'.format(source, dest))
+                log('DEBUG: No dest fid, skipping move {} -> {}'.format(source, dest))
             return
     if super_verbose:
-        print('DEBUG: Move {} -> {}'.format(source, dest))
+        log('DEBUG: Move {} -> {}'.format(source, dest))
     cursor.execute(
         'UPDATE files SET parent = :parent, segment = :segment WHERE id = :id',
         {
@@ -215,32 +222,32 @@ class MonitorHandler(watchdog.events.FileSystemEventHandler):
         if nextcommit is not None and now >= nextcommit:
             conn.commit()
             if super_verbose:
-                print('DEBUG: Committed')
+                log('DEBUG: Committed')
             nextcommit = None
         else:
             nextcommit = now + commit_wait
 
     def on_created(self, event):
         if super_verbose:
-            print('Create {}'.format(event.src_path))
+            log('Create {}'.format(event.src_path))
         process(event.src_path)
         self._wait_or_commit()
 
     def on_deleted(self, event):
         if super_verbose:
-            print('Delete {}'.format(event.src_path))
+            log('Delete {}'.format(event.src_path))
         process(event.src_path)
         self._wait_or_commit()
 
     def on_modified(self, event):
         if super_verbose:
-            print('Modify {}'.format(event.src_path))
+            log('Modify {}'.format(event.src_path))
         process(event.src_path)
         self._wait_or_commit()
 
     def on_moved(self, event):
         if super_verbose:
-            print('Move {} -> {}'.format(event.src_path, event.dest_path))
+            log('Move {} -> {}'.format(event.src_path, event.dest_path))
         move_file(event.src_path, event.dest_path)
         self._wait_or_commit()
 
@@ -287,7 +294,7 @@ def main():
     conn, cursor = common.open_db()
 
     if args.scan:
-        print('Looking for deleted files...')
+        log('Looking for deleted files...')
         stack = [(False, None, None)]
         parts = []
         last_parent = None
@@ -307,15 +314,15 @@ def main():
                 if parts:
                     joined = os.path.join(*parts)
                     if verbose:
-                        print('Checking [{}]'.format(joined))
+                        log('Checking [{}]'.format(joined))
                     if joined and not os.path.exists(joined):
-                        print('[{}] no longer exists, removing'.format(joined))
+                        log('[{}] no longer exists, removing'.format(joined))
                         remove_tags(fid)
                         delete_file(fid)
                     parts.pop()
 
         for path in args.directory:
-            print('Scanning [{}]...'.format(path))
+            log('Scanning [{}]...'.format(path))
             for base, dirnames, filenames in os.walk(path):
                 for filename in filenames:
                     abs_filename = os.path.join(base, filename)
@@ -329,7 +336,7 @@ def main():
     observer = watchdog.observers.Observer()
     handler = MonitorHandler()
     for path in args.directory:
-        print('Starting watch on [{}]'.format(path))
+        log('Starting watch on [{}]'.format(path))
         observer.schedule(handler, path, recursive=True)
     observer.schedule(handler, tmpdir, recursive=False)
     observer.start()
@@ -340,7 +347,7 @@ def main():
                 with open(os.path.join(tmpdir, 'jostle'), 'w') as file:
                     file.write(repr(nextcommit))
     except KeyboardInterrupt:
-        print('Received keyboard interrupt, please wait {} seconds'.format(
+        log('Received keyboard interrupt, please wait {} seconds'.format(
             sleep_time,
         ))
     observer.stop()
