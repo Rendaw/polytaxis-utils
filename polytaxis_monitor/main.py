@@ -14,6 +14,7 @@ import polytaxis
 from polytaxis_monitor import common
 
 verbose = False
+super_verbose = False
 
 die = False
 def signal_handler(signal, frame):
@@ -157,6 +158,8 @@ def process(filename):
             break
     fid, old_raw_tags = get_fid_and_raw_tags(fid, last_split)
     if tags is None and fid is None:
+        if super_verbose:
+            print('DEBUG: Not a file; skipping {}'.format(filename))
         pass
     elif tags is not None and fid is None:
         fid = create_file(filename, tags)
@@ -172,12 +175,15 @@ def process(filename):
         delete_file(fid)
 
 def move_file(source, dest):
+    source = os.path.abspath(source)
+    dest = os.path.abspath(dest)
     sparent = None
     sfid = None
     for split in split_abs_path(source):
         sparent = sfid
         sfid = get_fid(sparent, split)
         if sfid is None:
+            process(dest)
             return
     dparent = None
     dfid = None
@@ -188,7 +194,11 @@ def move_file(source, dest):
         dparent = dfid
         dfid = get_fid(dparent, split)
         if dfid is None:
+            if super_verbose:
+                print('DEBUG: No dest fid, skipping move {} -> {}'.format(source, dest))
             return
+    if super_verbose:
+        print('DEBUG: Move {} -> {}'.format(source, dest))
     cursor.execute(
         'UPDATE files SET parent = :parent, segment = :segment WHERE id = :id',
         {
@@ -204,23 +214,33 @@ class MonitorHandler(watchdog.events.FileSystemEventHandler):
         now = datetime.datetime.now()
         if nextcommit is not None and now >= nextcommit:
             conn.commit()
+            if super_verbose:
+                print('DEBUG: Committed')
             nextcommit = None
         else:
             nextcommit = now + commit_wait
 
     def on_created(self, event):
+        if super_verbose:
+            print('Create {}'.format(event.src_path))
         process(event.src_path)
         self._wait_or_commit()
 
     def on_deleted(self, event):
+        if super_verbose:
+            print('Delete {}'.format(event.src_path))
         process(event.src_path)
         self._wait_or_commit()
 
     def on_modified(self, event):
+        if super_verbose:
+            print('Modify {}'.format(event.src_path))
         process(event.src_path)
         self._wait_or_commit()
 
     def on_moved(self, event):
+        if super_verbose:
+            print('Move {} -> {}'.format(event.src_path, event.dest_path))
         move_file(event.src_path, event.dest_path)
         self._wait_or_commit()
 
@@ -246,12 +266,21 @@ def main():
         action='store_true',
         help='Enable verbose output.',
     )
+    parser.add_argument(
+        '-d',
+        '--super_verbose',
+        action='store_true',
+        help='Enable very verbose output.',
+    )
     args = parser.parse_args()
 
-    if args.verbose:
+    if args.verbose or args.super_verbose:
         common.verbose = True
         global verbose
         verbose = True
+    if args.super_verbose:
+        global super_verbose
+        super_verbose = True
     
     global cursor
     global conn
