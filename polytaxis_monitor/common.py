@@ -170,12 +170,12 @@ class QueryDB(object):
             build_select(query_exclude, item)
 
         if query_index[0] == 0:
-            query_select = 'SELECT id FROM files WHERE tags is not NULL LIMIT :offset, :size'
+            query_select = 'SELECT id FROM files WHERE tags is not NULL LIMIT :size OFFSET :offset'
         else:
             if query_include:
                 query_exclude.insert(0, ' INTERSECT '.join(query_include))
             query_select = (
-                ' EXCEPT '.join(query_exclude) + ' LIMIT :offset, :size'
+                ' EXCEPT '.join(query_exclude) + ' LIMIT :size OFFSET :offset'
             )
         
         # Perform the query in batches, and manually apply the rest of the
@@ -183,7 +183,7 @@ class QueryDB(object):
         batch_size = 100
         batch_index = 0
         while True:
-            query_args['offset'] = batch_index
+            query_args['offset'] = batch_index * batch_size
             query_args['size'] = batch_size
             batch = set(
                 self.cursor.execute(query_select, query_args).fetchall()
@@ -214,19 +214,19 @@ class QueryDB(object):
         while True:
             if method == 'prefix':
                 batch = self.cursor.execute(
-                    'SELECT DISTINCT tag FROM tags WHERE tag LIKE :arg ORDER BY tag ASC LIMIT :offset, :size',
+                    'SELECT DISTINCT tag FROM tags WHERE tag LIKE :arg ORDER BY tag ASC LIMIT :size OFFSET :offset',
                     {
                         'arg': arg + '%',
-                        'offset': batch_index,
+                        'offset': batch_index * batch_size,
                         'size': batch_size,
                     },
                 ).fetchall()
             elif method == 'anywhere':
                 batch = self.cursor.execute(
-                    'SELECT DISTINCT tag FROM tags WHERE tag LIKE :arg ORDER BY tag ASC LIMIT :offset, :size',
+                    'SELECT DISTINCT tag FROM tags WHERE tag LIKE :arg ORDER BY tag ASC LIMIT :size OFFSET :offset',
                     {
                         'arg': '%' + arg + '%',
-                        'offset': batch_index,
+                        'offset': batch_index * batch_size,
                         'size': batch_size,
                     },
                 ).fetchall()
