@@ -5,6 +5,7 @@ import functools
 import random
 import hashlib
 import operator
+import ntpath
 
 import appdirs
 import polytaxis
@@ -13,6 +14,37 @@ import natsort
 verbose = False
 
 _natkey = natsort.natsort_keygen()
+
+
+def os_path_split_asunder(path, windows):
+    # Thanks http://stackoverflow.com/questions/4579908/cross-platform-splitting-of-path-in-python/4580931#4580931
+    # Mod for windows paths on linux
+    parts = []
+    while True:
+        newpath, tail = (ntpath.split if windows else os.path.split)(path)
+        if newpath == path:
+            assert not tail
+            if path: parts.append(path)
+            break
+        parts.append(tail)
+        path = newpath
+    parts.reverse()
+    return parts
+
+
+def split_abs_path(path):
+    windows = False
+    out = []
+    if len(path) > 1 and path[1] == ':':
+        windows = True
+        drive, path = ntpath.splitdrive(path)
+        out.append(drive)
+    extend = os_path_split_asunder(path, windows)
+    if windows:
+        extend.pop(0)
+    out.extend(extend)
+    return out
+
 
 def mkdir_p(path):
     try:
@@ -26,6 +58,7 @@ def mkdir_p(path):
 def init_db(cursor):
     cursor.execute('CREATE TABLE files (id INTEGER PRIMARY KEY, parent INT, segment TEXT NOT NULL, tags TEXT)')
     cursor.execute('CREATE TABLE tags (tag TEXT NOT NULL, file INT NOT NULL)')
+
 
 def open_db():
     root = appdirs.user_data_dir('polytaxis-monitor', 'zarbosoft')

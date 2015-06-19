@@ -20,13 +20,13 @@ class TestWrite(unittest.TestCase):
 
     def test_split_abs_path(self):
         self.assertEqual(
-            list(polytaxis_monitor.main.split_abs_path('/a/b/c.txt')),
+            list(polytaxis_monitor.common.split_abs_path('/a/b/c.txt')),
             ['/', 'a', 'b', 'c.txt'],
         )
     
     def test_split_abs_path_win(self):
         self.assertEqual(
-            list(polytaxis_monitor.main.split_abs_path('c:\\a\\b\\c.txt')),
+            list(polytaxis_monitor.common.split_abs_path('c:\\a\\b\\c.txt')),
             ['c:', 'a', 'b', 'c.txt'],
         )
 

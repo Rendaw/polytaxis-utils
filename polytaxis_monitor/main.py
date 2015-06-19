@@ -1,5 +1,4 @@
 import os
-import ntpath
 import argparse
 import signal
 import time
@@ -29,34 +28,6 @@ sleep_time = 5
 
 log = print
 
-def os_path_split_asunder(path, windows):
-    # Thanks http://stackoverflow.com/questions/4579908/cross-platform-splitting-of-path-in-python/4580931#4580931
-    # Mod for windows paths on linux
-    parts = []
-    while True:
-        newpath, tail = (ntpath.split if windows else os.path.split)(path)
-        if newpath == path:
-            assert not tail
-            if path: parts.append(path)
-            break
-        parts.append(tail)
-        path = newpath
-    parts.reverse()
-    return parts
-
-def split_abs_path(path):
-    windows = False
-    out = []
-    if len(path) > 1 and path[1] == ':':
-        windows = True
-        drive, path = ntpath.splitdrive(path)
-        out.append(drive)
-    extend = os_path_split_asunder(path, windows)
-    if windows:
-        extend.pop(0)
-    out.extend(extend)
-    return out
-
 def get_fid_and_raw_tags(parent, segment):
     got = cursor.execute(
         'SELECT id, tags FROM files WHERE parent is :parent AND segment = :segment LIMIT 1', 
@@ -85,7 +56,7 @@ def create_file(filename, tags):
     if super_verbose:
         log('DEBUG: Created: [{}]'.format(filename))
     fid = None
-    splits = split_abs_path(filename)
+    splits = common.split_abs_path(filename)
     last_index = len(splits) - 1
     for index, split in enumerate(splits):
         next_fid = get_fid(fid, split)
@@ -153,7 +124,7 @@ def process(filename):
     if not tags and tags is not None:
         tags = {'untagged': set([None])}
     fid = None
-    splits = split_abs_path(filename)
+    splits = common.split_abs_path(filename)
     last_split = splits.pop()
     for split in splits:
         fid = get_fid(fid, split)
@@ -186,7 +157,7 @@ def move_file(source, dest):
     dest = os.path.abspath(dest)
     sparent = None
     sfid = None
-    for split in split_abs_path(source):
+    for split in common.split_abs_path(source):
         sparent = sfid
         sfid = get_fid(sparent, split)
         if sfid is None:
@@ -194,7 +165,7 @@ def move_file(source, dest):
             return
     dparent = None
     dfid = None
-    dsplits = split_abs_path(source)
+    dsplits = common.split_abs_path(source)
     new_name = dsplits[-1]
     dsplits = dsplits[:-1]
     for split in dsplits:
