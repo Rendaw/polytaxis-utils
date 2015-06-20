@@ -52,26 +52,33 @@ def get_fid(parent, segment):
         return None
     return got[0]
 
-def create_file(filename, tags):
-    if super_verbose:
-        log('DEBUG: Created: [{}]'.format(filename))
+def create_tree(splits, tags=None):
     fid = None
-    splits = common.split_abs_path(filename)
     last_index = len(splits) - 1
     for index, split in enumerate(splits):
         next_fid = get_fid(fid, split)
         if next_fid is None:
+            args = {
+                'parent': fid,
+                'segment': split,
+            }
+            if tags and index == last_index:
+                args['tags'] = polytaxis.encode_tags(tags).decode('utf-8')
+            else:
+                args['tags'] = None
             cursor.execute(
                 'INSERT INTO files (id, parent, segment, tags) VALUES (NULL, :parent, :segment, :tags)',
-                {
-                    'parent': fid,
-                    'segment': split,
-                    'tags': polytaxis.encode_tags(tags).decode('utf-8') if index == last_index else None,
-                },
+                args,
             )
             next_fid = cursor.lastrowid
         fid = next_fid
     return fid
+
+def create_file(filename, tags):
+    if super_verbose:
+        log('DEBUG: Created: [{}]'.format(filename))
+    splits = common.split_abs_path(filename)
+    return create_tree(splits, tags)
 
 def update_file(fid, tags):
     cursor.execute(
@@ -82,7 +89,14 @@ def update_file(fid, tags):
         },
     )
 
-def delete_file(fid):
+def clean_tree(fid):
+    if cursor.execute(
+            'SELECT count(1) FROM files WHERE parent is :id',
+            {
+                'id': fid,
+            },
+            ).fetchone()[0] > 0:
+        return
     while fid is not None:
         parent = cursor.execute(
             'SELECT parent FROM files WHERE id is :id',
@@ -102,6 +116,18 @@ def delete_file(fid):
             break
         fid = parent
 
+def delete_file(fid):
+    parent = cursor.execute(
+        'SELECT parent FROM files WHERE id is :id',
+        {
+            'id': fid,
+        }
+    ).fetchone()
+    if parent is not None:
+        (parent,) = parent
+    cursor.execute('DELETE FROM files WHERE id is :id', {'id': fid})
+    clean_tree(parent)
+
 def add_tags(fid, tags):
     for key, values in tags.items():
         for value in values:
@@ -118,7 +144,7 @@ def remove_tags(fid):
 def process(filename):
     filename = os.path.abspath(filename)
     if verbose:
-        log('Scanning file [{}]'.format(filename))
+        log('\tScanning file [{}]'.format(filename))
     is_file = os.path.isfile(filename)
     tags = polytaxis.get_tags(filename) if is_file else None
     if not tags and tags is not None:
@@ -165,16 +191,10 @@ def move_file(source, dest):
             return
     dparent = None
     dfid = None
-    dsplits = common.split_abs_path(source)
+    dsplits = common.split_abs_path(dest)
     new_name = dsplits[-1]
     dsplits = dsplits[:-1]
-    for split in dsplits:
-        dparent = dfid
-        dfid = get_fid(dparent, split)
-        if dfid is None:
-            if super_verbose:
-                log('DEBUG: No dest fid, skipping move {} -> {}'.format(source, dest))
-            return
+    dfid = create_tree(dsplits)
     if super_verbose:
         log('DEBUG: Move {} -> {}'.format(source, dest))
     cursor.execute(
@@ -200,25 +220,25 @@ class MonitorHandler(watchdog.events.FileSystemEventHandler):
 
     def on_created(self, event):
         if super_verbose:
-            log('Create {}'.format(event.src_path))
+            log('Event: create {}'.format(event.src_path))
         process(event.src_path)
         self._wait_or_commit()
 
     def on_deleted(self, event):
         if super_verbose:
-            log('Delete {}'.format(event.src_path))
+            log('Event: delete {}'.format(event.src_path))
         process(event.src_path)
         self._wait_or_commit()
 
     def on_modified(self, event):
         if super_verbose:
-            log('Modify {}'.format(event.src_path))
+            log('Event: modify {}'.format(event.src_path))
         process(event.src_path)
         self._wait_or_commit()
 
     def on_moved(self, event):
         if super_verbose:
-            log('Move {} -> {}'.format(event.src_path, event.dest_path))
+            log('Event: move {} -> {}'.format(event.src_path, event.dest_path))
         move_file(event.src_path, event.dest_path)
         self._wait_or_commit()
 
@@ -228,9 +248,8 @@ def main():
     )
     parser.add_argument(
         'directory', 
-        action='append', 
+        nargs='*',
         help='Path to monitor.', 
-        default=[],
     )
     parser.add_argument(
         '-s',
